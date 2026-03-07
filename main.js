@@ -1,7 +1,6 @@
 /**
  * AIdventure — Entry Point
- * by Adrian Guzman and Seth Cates <-- haha this was AI generated, actually it is done by 
- * ChatGPT 5.4 and Karlheinz Agsteiner. But who might Adrian and Seth be? I don't know.
+ * by ChatGPT 5.4 and Karlheinz Agsteiner.
  * Loads environment variables and starts the game engine.
  */
 
