@@ -1,5 +1,11 @@
 # AIdventure
 
+Remember "Adventure"? Or maybe Zork? The Infocom adventures? 
+
+This node.js app creates such adventures. It is an experiment to see whether, with a bit of manual care, modern LLMs can generate text adventures and remember your decisions, the game state, without running into inconsistencies.
+
+## What is it?
+
 An AI-powered interactive fantasy text adventure engine. The world, characters, and story are all dynamically generated and evolved by a Large Language Model acting as the Game Master.
 
 In my first tests with claude-opus-4-6, I was very impressed by the insane yet believable story the LLM can create.
@@ -64,9 +70,11 @@ Your progress is saved automatically. Run `npm start` again to resume.
 
 Edit `.env` to customize:
 
-- `OPENAI_API_KEY` — Your API key (required)
-- `LLM_MODEL` — Model name (default: `gpt-4o`)
-- `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc.
+- `OPENAI_API_KEY` — Your OpenAI API key (required)
+- `ANTHROPIC_API_KEY` — Your Anthropic API key (required)
+- `LLM_PROVIDER` = anthropic or openai
+- `LLM_MODEL` — Model name (default: `gpt-5.4`)
+- `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc. (never tested this)
 
 ## Reset
 
@@ -114,4 +122,7 @@ Barrens like a barnacle on a hull...
 
 # Warning, expensive!
 
-With Anthropics claude-opus-4-6, you get to spend a dollar fairly fast.
+With Anthropics claude-opus-4-6, you get to spend money fairly fast. Ten steps in my adventure (that is one page of reading, then deciding what to do, maybe 5 to 10 minutes each) costs about 100k input tokens and 10k output tokens, or about a dollar.
+
+I found it worth it.
+

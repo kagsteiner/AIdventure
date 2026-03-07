@@ -18,6 +18,7 @@ const PATHS = {
   state: path.join(GAME_DIR, "state.json"),
   log: path.join(GAME_DIR, "log.md"),
   summary: path.join(GAME_DIR, "summary.md"),
+  story: path.join(GAME_DIR, "story.md"),
 };
 
 async function ensureGameDir() {
@@ -86,6 +87,14 @@ export async function appendLog(narrative) {
 export async function loadLog() {
   if (!existsSync(PATHS.log)) return "";
   return fs.readFile(PATHS.log, "utf-8");
+}
+
+// --- Story (readable transcript of the full adventure) ---
+
+export async function appendStory(text) {
+  await ensureGameDir();
+  const separator = existsSync(PATHS.story) ? "\n\n" : "";
+  await fs.appendFile(PATHS.story, separator + text, "utf-8");
 }
 
 // --- Summary ---

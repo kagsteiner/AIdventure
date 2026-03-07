@@ -83,6 +83,14 @@ async function anthropicText(systemPrompt, userPrompt) {
   return response.content[0].text.trim();
 }
 
+// --- Language directive ---
+
+function langDirective() {
+  const lang = process.env.GAME_LANGUAGE || "English";
+  if (lang.toLowerCase() === "english") return "";
+  return `\n\nIMPORTANT: All player-facing text (narrative, choices, descriptions, quest names, item names) MUST be written in ${lang}. Internal JSON keys remain in English.`;
+}
+
 // --- Shared utilities ---
 
 /**
@@ -110,9 +118,10 @@ function extractJSON(text) {
  * @returns {object} Parsed JSON from the LLM response
  */
 export async function queryLLM(systemPrompt, userPrompt) {
+  const fullSystem = systemPrompt + langDirective();
   const raw = provider() === "openai"
-    ? await openaiJSON(systemPrompt, userPrompt)
-    : await anthropicJSON(systemPrompt, userPrompt);
+    ? await openaiJSON(fullSystem, userPrompt)
+    : await anthropicJSON(fullSystem, userPrompt);
   return JSON.parse(extractJSON(raw));
 }
 
@@ -120,7 +129,8 @@ export async function queryLLM(systemPrompt, userPrompt) {
  * Send a prompt expecting free-form text (used for summaries).
  */
 export async function queryLLMText(systemPrompt, userPrompt) {
+  const fullSystem = systemPrompt + langDirective();
   return provider() === "openai"
-    ? await openaiText(systemPrompt, userPrompt)
-    : await anthropicText(systemPrompt, userPrompt);
+    ? await openaiText(fullSystem, userPrompt)
+    : await anthropicText(fullSystem, userPrompt);
 }

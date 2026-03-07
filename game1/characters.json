@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Thessaly Drum-Walker",
+    "role": "quest-giver",
+    "location": "The Rust Marches — Outpost of Corren's Stake",
+    "description": "A weathered Corroden elder with deep ochre skin and hands perpetually stained red from the marsh grasses. She moves with deliberate slowness, as if rationing each gesture, and her voice carries the dry cadence of someone who has outlived most of her friends. Her left eye is milky and unfocused — a minor Drift injury from her youth.",
+    "goals": "She wants the player to investigate the temporal disturbances along the southern Rust Marches, which she believes are connected to the Stillfall that took her sister thirty-two years ago.",
+    "disposition_to_player": "friendly"
+  },
+  {
+    "name": "Vesker Noone",
+    "role": "companion",
+    "location": "The Rust Marches — Outpost of Corren's Stake",
+    "description": "A lanky young scavenger with close-cropped silver hair and an unsettling habit of finishing other people's sentences — not through rudeness, but because they seem to experience conversations slightly ahead of everyone else. They wear a coat stitched from skethren chitin and carry a bone-handled tuning fork.",
+    "goals": "Vesker wants to reach the Hanging Archives to understand why they perceive time differently from others — a condition they fear is early-stage Drift despite never having practiced Cadence.",
+    "disposition_to_player": "friendly"
+  },
+  {
+    "name": "Archvist Solenne Urreth",
+    "role": "knowledge-broker",
+    "location": "The Hanging Archives of Peltravar — Upper Stacks",
+    "description": "An impossibly old woman who appears no more than forty, her Cadence-slowed aging betrayed only by the ancient weariness in her dark eyes. She speaks in precise, clipped sentences and surrounds herself with ticking instruments that measure temporal drift. Her robes are embroidered with rhythmic notation.",
+    "goals": "She seeks definitive proof that the Fulcrum Shard is destabilizing so she can force the Commodore Parliament to act, but she is unwilling to travel to the Glassfield herself due to her accumulated Drift.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "Commodore Harath Gale",
+    "role": "political antagonist",
+    "location": "The Tidelock Isles — Parliament Spire on Midsummer Isle",
+    "description": "A broad-shouldered, booming man with salt-streaked auburn hair and a prosthetic hand carved from temporal amber — frozen sap from the Verdance that glows faintly gold. He laughs easily and often, but his eyes calculate constantly. He wears the layered silks of a successful merchant-captain.",
+    "goals": "Maintain the Tidelock Isles' economic dominance by keeping unrestricted access to the Glassfield. He genuinely believes the temporal instability warnings are exaggerated and fears the Order of the Unblinking is using the crisis to seize political power.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "Mira of the Verdance",
+    "role": "guide and merchant",
+    "location": "The Verdance — Threshold Market (jungle's edge)",
+    "description": "A compact, muscular Bloomborn woman with geometric bioluminescent tattoos that shift color with the local temporal current. She speaks three languages, moves through the jungle with preternatural ease, and has a dry, mordant sense of humor. She sells temporal maps and guide services.",
+    "goals": "Profit, survival, and protecting the Verdance from outsiders who would exploit its temporal instability. She harbors a deeper secret: she has found a path to the Glassfield that bypasses all known routes.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "The Metronome",
+    "role": "antagonist",
+    "location": "Unknown — rumored to operate from within the Glassfield of Ometh",
+    "description": "No one has seen the Metronome's true face. They communicate through temporal anomalies — messages that arrive before they are sent, warnings written in handwriting that ages and crumbles as you read it. Witnesses describe a figure wrapped in bandages of slowcloth, moving in stuttering bursts as though skipping between seconds.",
+    "goals": "The Metronome is the leader of the Lament Seekers and believes triggering the Second Lament will reunify time and heal the world — regardless of how many die in the transition. They seek the Fulcrum Shard.",
+    "disposition_to_player": "hostile"
+  },
+  {
+    "name": "Endric Vael",
+    "role": "rival adventurer",
+    "location": "Roving — currently in the Rust Marches",
+    "description": "A former Metronomist from Peltravar who was expelled from the Order for unauthorized experiments on living subjects. He is gaunt, sharp-featured, and impeccably dressed in anachronistic clothing — styles from centuries past and perhaps centuries hence. His Drift is visible: he flickers at the edges, like a candle flame in a draft.",
+    "goals": "Reach the Fulcrum Shard before anyone else and use it to reverse his own Drift. He will cooperate, betray, or destroy anyone depending on how they serve this goal.",
+    "disposition_to_player": "unknown"
+  },
+  {
+    "name": "Sotto",
+    "role": "mysterious ally",
+    "location": "The Glassfield of Ometh — periphery",
+    "description": "A child — or something shaped like a child — who sits at the edge of the Glassfield, drawing patterns in the sand that un-fuse and return to granular form at their touch. Sotto has no apparent age, speaks in riddles and half-truths, and claims to remember the sound the Pendulum made before it broke.",
+    "goals": "Sotto's true goals are unclear. They seem to want someone — the right someone — to reach the Fulcrum Shard, but for reasons they will not explain.",
+    "disposition_to_player": "unknown"
+  }
+]

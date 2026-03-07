@@ -6,12 +6,65 @@
  */
 
 import readline from "readline";
-import { worldExists, applyStateChanges, appendLog, loadState } from "./state_manager.js";
+import { worldExists, applyStateChanges, appendLog, appendStory, loadState } from "./state_manager.js";
 import { buildWorld } from "./world_builder.js";
 import { processTurn } from "./game_master.js";
 
 const DIVIDER = "━".repeat(56);
 const THIN_DIVIDER = "─".repeat(56);
+
+const UI_STRINGS = {
+  en: {
+    subtitle: "AI-Powered Fantasy Text Adventure",
+    noWorld: "No saved world found. Generating a new world...",
+    resuming: "Resuming your adventure...",
+    resumeHint: "(Type your action to continue, or 'quit' to exit)",
+    quit: "Your story pauses here. Until next time, adventurer.",
+    thinking: "...",
+    errorWorld: "Failed to generate world:",
+    errorEnv: "Check your .env file and API key.",
+    errorLLM: "The world flickers... (LLM error:",
+    errorRetry: "Try again, or type 'quit' to exit.",
+    inventory: "Inventory:",
+    inventoryEmpty: "(empty)",
+    gold: "Gold:",
+    helpTitle: "Commands:",
+    helpNumber: "[number]    - Choose a numbered option",
+    helpFree: "[free text] - Do anything you can describe",
+    helpInv: "inventory   - Check your belongings",
+    helpStatus: "status      - View full game state",
+    helpQuit: "quit        - Save and exit",
+    day: "Day",
+  },
+  de: {
+    subtitle: "KI-gesteuertes Fantasy-Textabenteuer",
+    noWorld: "Keine gespeicherte Welt gefunden. Erschaffe eine neue Welt...",
+    resuming: "Dein Abenteuer wird fortgesetzt...",
+    resumeHint: "(Gib deine Aktion ein, oder 'quit' zum Beenden)",
+    quit: "Deine Geschichte pausiert hier. Bis zum nächsten Mal, Abenteurer.",
+    thinking: "...",
+    errorWorld: "Welterstellung fehlgeschlagen:",
+    errorEnv: "Überprüfe deine .env-Datei und den API-Schlüssel.",
+    errorLLM: "Die Welt flackert... (LLM-Fehler:",
+    errorRetry: "Versuche es erneut, oder gib 'quit' zum Beenden ein.",
+    inventory: "Inventar:",
+    inventoryEmpty: "(leer)",
+    gold: "Gold:",
+    helpTitle: "Befehle:",
+    helpNumber: "[Zahl]      - Wähle eine nummerierte Option",
+    helpFree: "[Freitext]  - Tu alles, was du beschreiben kannst",
+    helpInv: "inventory   - Inventar anzeigen",
+    helpStatus: "status      - Spielstand anzeigen",
+    helpQuit: "quit        - Speichern und beenden",
+    day: "Tag",
+  },
+};
+
+function ui() {
+  const lang = (process.env.GAME_LANGUAGE || "English").toLowerCase();
+  const key = lang.startsWith("de") || lang === "german" ? "de" : "en";
+  return UI_STRINGS[key];
+}
 
 function createInterface() {
   return readline.createInterface({
@@ -81,7 +134,7 @@ async function displayStatus() {
   const parts = [];
   if (state.location) parts.push(`📍 ${state.location}`);
   if (state.sub_location) parts.push(`→ ${state.sub_location}`);
-  if (state.day) parts.push(`Day ${state.day}`);
+  if (state.day) parts.push(`${ui().day} ${state.day}`);
   if (state.time_of_day) parts.push(state.time_of_day);
   if (state.health && state.health !== "good") parts.push(`❤️ ${state.health}`);
   if (state.gold !== undefined) parts.push(`💰 ${state.gold}g`);
@@ -110,30 +163,31 @@ export async function runGame() {
   const rl = createInterface();
 
   console.log();
+  const t = ui();
   console.log("  ╔══════════════════════════════════════════╗");
   console.log("  ║           A I d v e n t u r e            ║");
-  console.log("  ║     AI-Powered Fantasy Text Adventure     ║");
+  console.log(`  ║  ${t.subtitle.padStart(Math.floor((38 + t.subtitle.length) / 2)).padEnd(38)}  ║`);
   console.log("  ╚══════════════════════════════════════════╝");
   console.log();
 
   let currentChoices = [];
 
   if (!worldExists()) {
-    console.log("  No saved world found. Generating a new world...");
+    console.log(`  ${t.noWorld}`);
     try {
       const opening = await buildWorld();
       displayScene(opening.narrative, opening.ascii_art, opening.choices);
       currentChoices = opening.choices;
     } catch (err) {
-      console.error("\n  Failed to generate world:", err.message);
-      console.error("  Check your .env file and API key.\n");
+      console.error(`\n  ${t.errorWorld}`, err.message);
+      console.error(`  ${t.errorEnv}\n`);
       rl.close();
       process.exit(1);
     }
   } else {
-    console.log("  Resuming your adventure...\n");
+    console.log(`  ${t.resuming}\n`);
     await displayStatus();
-    console.log("\n  (Type your action to continue, or 'quit' to exit)\n");
+    console.log(`\n  ${t.resumeHint}\n`);
   }
 
   while (true) {
@@ -144,7 +198,7 @@ export async function runGame() {
 
     const command = rawInput.trim().toLowerCase();
     if (command === "quit" || command === "exit") {
-      console.log("\n  Your story pauses here. Until next time, adventurer.\n");
+      console.log(`\n  ${t.quit}\n`);
       break;
     }
 
@@ -157,25 +211,25 @@ export async function runGame() {
     if (command === "inventory" || command === "inv" || command === "i") {
       const state = await loadState();
       const inv = state?.inventory || [];
-      console.log(`\n  Inventory: ${inv.length === 0 ? "(empty)" : inv.join(", ")}`);
-      if (state?.gold !== undefined) console.log(`  Gold: ${state.gold}`);
+      console.log(`\n  ${t.inventory} ${inv.length === 0 ? t.inventoryEmpty : inv.join(", ")}`);
+      if (state?.gold !== undefined) console.log(`  ${t.gold} ${state.gold}`);
       continue;
     }
 
     if (command === "help" || command === "?") {
-      console.log("\n  Commands:");
-      console.log("    [number]    - Choose a numbered option");
-      console.log("    [free text] - Do anything you can describe");
-      console.log("    inventory   - Check your belongings");
-      console.log("    status      - View full game state");
-      console.log("    quit        - Save and exit");
+      console.log(`\n  ${t.helpTitle}`);
+      console.log(`    ${t.helpNumber}`);
+      console.log(`    ${t.helpFree}`);
+      console.log(`    ${t.helpInv}`);
+      console.log(`    ${t.helpStatus}`);
+      console.log(`    ${t.helpQuit}`);
       console.log();
       continue;
     }
 
     const action = resolveInput(rawInput, currentChoices);
 
-    console.log("\n  ...\n");
+    console.log(`\n  ${t.thinking}\n`);
 
     try {
       const result = await processTurn(action);
@@ -185,11 +239,12 @@ export async function runGame() {
       }
 
       await appendLog(result.narrative);
+      await appendStory(`> *${action}*\n\n${result.narrative}`);
       displayScene(result.narrative, result.ascii_art, result.choices);
       currentChoices = result.choices;
     } catch (err) {
-      console.error("\n  The world flickers... (LLM error:", err.message, ")\n");
-      console.error("  Try again, or type 'quit' to exit.\n");
+      console.error(`\n  ${t.errorLLM}`, err.message, ")\n");
+      console.error(`  ${t.errorRetry}\n`);
     }
   }
 

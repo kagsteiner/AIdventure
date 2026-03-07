@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node main.js",
-    "reset": "node -e \"import('fs').then(fs => { ['game/world.md','game/characters.json','game/state.json','game/log.md','game/summary.md'].forEach(f => { try { fs.unlinkSync(f) } catch {} }) })\""
+    "reset": "node -e \"import('fs').then(fs => { ['game/world.md','game/characters.json','game/state.json','game/log.md','game/summary.md','game/story.md'].forEach(f => { try { fs.unlinkSync(f) } catch {} }) })\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

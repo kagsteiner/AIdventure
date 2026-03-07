@@ -8,7 +8,7 @@
  */
 
 import { queryLLM } from "./llm.js";
-import { saveWorld, saveCharacters, saveState, appendLog } from "./state_manager.js";
+import { saveWorld, saveCharacters, saveState, appendLog, appendStory } from "./state_manager.js";
 
 const SYSTEM_PROMPT = `You are a master fantasy world-builder.
 Create an original, richly detailed fantasy world for a text adventure game.
@@ -71,6 +71,7 @@ export async function buildWorld() {
   await saveCharacters(result.characters);
   await saveState(result.starting_state);
   await appendLog(result.opening_narrative);
+  await appendStory(`# AIdventure\n\n---\n\n${result.opening_narrative}`);
 
   return {
     narrative: result.opening_narrative,

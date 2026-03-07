@@ -1,0 +1,25 @@
+{
+  "day": 2,
+  "time_of_day": "night",
+  "location": "The Rust Marches",
+  "sub_location": "Redsong Gulch — Rim, surface of the Rust Marches",
+  "health": "severely exhausted, hands damaged, temporally strained but coherent",
+  "inventory": [
+    "lacquered wood staff",
+    "temporal compass (cracked)",
+    "waterskin",
+    "dried skethren meat (2 portions)",
+    "journal with strange annotations"
+  ],
+  "gold": 12,
+  "active_quest": "The Stillfall's Echo",
+  "quest_log": [
+    "Thessaly Drum-Walker has asked you to investigate temporal disturbances at the Redsong Gulch, a half-day's walk south of Corren's Stake. She believes they are connected to the Stillfall of Year 891."
+  ],
+  "reputation": {
+    "Corroden Clans": "welcomed stranger",
+    "Order of the Unblinking": "unknown",
+    "Commodore Parliament": "unknown",
+    "Lament Seekers": "unknown"
+  }
+}
