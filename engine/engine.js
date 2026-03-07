@@ -9,13 +9,14 @@ import readline from "readline";
 import { worldExists, applyStateChanges, appendLog, appendStory, loadState } from "./state_manager.js";
 import { buildWorld } from "./world_builder.js";
 import { processTurn } from "./game_master.js";
+import { getStoryTypeMenu } from "./story_types.js";
 
 const DIVIDER = "━".repeat(56);
 const THIN_DIVIDER = "─".repeat(56);
 
 const UI_STRINGS = {
   en: {
-    subtitle: "AI-Powered Fantasy Text Adventure",
+    subtitle: "AI-Powered Text Adventure",
     noWorld: "No saved world found. Generating a new world...",
     resuming: "Resuming your adventure...",
     resumeHint: "(Type your action to continue, or 'quit' to exit)",
@@ -37,7 +38,7 @@ const UI_STRINGS = {
     day: "Day",
   },
   de: {
-    subtitle: "KI-gesteuertes Fantasy-Textabenteuer",
+    subtitle: "KI-gesteuertes Textabenteuer",
     noWorld: "Keine gespeicherte Welt gefunden. Erschaffe eine neue Welt...",
     resuming: "Dein Abenteuer wird fortgesetzt...",
     resumeHint: "(Gib deine Aktion ein, oder 'quit' zum Beenden)",
@@ -157,6 +158,30 @@ function resolveInput(input, choices) {
 }
 
 /**
+ * Display story type selection menu and get user choice.
+ */
+async function selectStoryType(rl) {
+  const menu = getStoryTypeMenu();
+
+  console.log("\n  Select your adventure type:\n");
+  menu.forEach(item => {
+    console.log(`    ${item.number}. ${item.name}`);
+    console.log(`       ${item.description}\n`);
+  });
+
+  while (true) {
+    const input = await prompt(rl, "  Choose (1-" + menu.length + "): ");
+    const choice = parseInt(input.trim(), 10);
+
+    if (choice >= 1 && choice <= menu.length) {
+      return menu[choice - 1].key;
+    }
+
+    console.log("  Invalid choice. Please try again.\n");
+  }
+}
+
+/**
  * Run the main game loop.
  */
 export async function runGame() {
@@ -174,8 +199,9 @@ export async function runGame() {
 
   if (!worldExists()) {
     console.log(`  ${t.noWorld}`);
+    const storyType = await selectStoryType(rl);
     try {
-      const opening = await buildWorld();
+      const opening = await buildWorld(storyType);
       displayScene(opening.narrative, opening.ascii_art, opening.choices);
       currentChoices = opening.choices;
     } catch (err) {

@@ -9,15 +9,28 @@
 
 import { queryLLM } from "./llm.js";
 import { saveWorld, saveCharacters, saveState, appendLog, appendStory } from "./state_manager.js";
+import { getStoryType } from "./story_types.js";
 
-const SYSTEM_PROMPT = `You are a master fantasy world-builder.
-Create an original, richly detailed fantasy world for a text adventure game.
-The world should feel lived-in and have internal consistency.
+function buildSystemPrompt(storyType) {
+  const config = getStoryType(storyType);
+
+  const genreInstructions = storyType === 'space_opera'
+    ? 'galaxy/universe'
+    : 'world';
+
+  const worldLoreGuidance = storyType === 'space_opera'
+    ? "the galaxy/universe: its name, major civilizations/species, key technologies, important worlds and space stations (at least 5 distinct locations), major historical events, and current political tensions."
+    : "the world: its name, creation myth, magic/power system, geography (at least 5 distinct regions), major historical events, and current political tensions.";
+
+  return `You are a master world-builder for interactive fiction.
+Create an original, richly detailed ${genreInstructions} for a text adventure game.
+
+${config.world_tone}
 
 You MUST respond with a JSON object containing these exact keys:
 
 {
-  "world_lore": "A markdown document (1000-1500 words) describing the world: its name, creation myth, magic system, geography (at least 5 distinct regions), major historical events, and current political tensions.",
+  "world_lore": "A markdown document (1000-1500 words) describing ${worldLoreGuidance}",
 
   "characters": [
     {
@@ -40,10 +53,11 @@ You MUST respond with a JSON object containing these exact keys:
     "gold": 0,
     "active_quest": "string",
     "quest_log": ["string"],
-    "reputation": {}
+    "reputation": {},
+    "genre": "${storyType}"
   },
 
-  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the world and their starting situation. Include sensory details. End with a moment of tension or curiosity.)",
+  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the ${genreInstructions} and their starting situation. Include sensory details. End with a moment of tension or curiosity.)",
 
   "ascii_art": "string (simple ASCII art of the starting location, max 8 lines)",
 
@@ -52,20 +66,30 @@ You MUST respond with a JSON object containing these exact keys:
 
 Generate 6-10 interesting characters across different locations.
 Make the starting quest compelling but not overwhelming.
-The tone should be literary fantasy — think Ursula K. Le Guin meets a tabletop RPG.`;
 
-const USER_PROMPT = `Generate a complete fantasy world for a new adventure game.
-Be creative and original. Avoid generic fantasy tropes where possible.
-The world should have mystery, danger, and wonder in equal measure.`;
+${config.narrative_style}`;
+}
+
+function buildUserPrompt(storyType) {
+  const genreType = storyType === 'space_opera' ? 'universe' : 'world';
+  return `Generate a complete ${genreType} for a new adventure game.
+Be creative and original. Avoid generic tropes where possible.
+Create something with mystery, danger, and wonder in equal measure.`;
+}
 
 /**
  * Generate the initial world and persist all files.
  * Returns the opening scene data for display.
+ *
+ * @param {string} storyType - The selected story type key
  */
-export async function buildWorld() {
+export async function buildWorld(storyType = 'sanderson_fantasy') {
   console.log("\n  Weaving the threads of a new world...\n");
 
-  const result = await queryLLM(SYSTEM_PROMPT, USER_PROMPT);
+  const systemPrompt = buildSystemPrompt(storyType);
+  const userPrompt = buildUserPrompt(storyType);
+
+  const result = await queryLLM(systemPrompt, userPrompt);
 
   await saveWorld(result.world_lore);
   await saveCharacters(result.characters);

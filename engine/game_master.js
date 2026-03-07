@@ -10,9 +10,15 @@
 import { queryLLM } from "./llm.js";
 import { loadWorld, loadCharacters, loadState } from "./state_manager.js";
 import { getFullMemoryContext } from "./memory_manager.js";
+import { getStoryType } from "./story_types.js";
 
-const SYSTEM_PROMPT = `You are the Game Master of an AI-driven fantasy text adventure.
-Your role is to craft immersive, literary narrative in response to the player's actions.
+function buildSystemPrompt(storyType) {
+  const config = getStoryType(storyType);
+
+  return `You are the Game Master of an AI-driven interactive story adventure.
+Your role is to craft immersive, compelling narrative in response to the player's actions.
+
+${config.narrative_style}
 
 Rules:
 - Stay consistent with the established world lore, character personalities, and current state.
@@ -65,6 +71,7 @@ Important:
 - inventory in state_changes should always be the COMPLETE updated list, not a diff.
 - If nothing changed for a field, do NOT include it in state_changes.
 - narrative should NEVER be empty.`;
+}
 
 /**
  * Assemble the full context document for the LLM.
@@ -110,8 +117,11 @@ Respond as the Game Master.`;
  */
 export async function processTurn(playerAction) {
   const context = await buildContext(playerAction);
+  const state = await loadState();
+  const storyType = state?.genre || 'sanderson_fantasy';
 
-  const result = await queryLLM(SYSTEM_PROMPT, context);
+  const systemPrompt = buildSystemPrompt(storyType);
+  const result = await queryLLM(systemPrompt, context);
 
   if (!result.narrative) {
     result.narrative = "The world shifts around you, but nothing notable happens.";
