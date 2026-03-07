@@ -2,6 +2,8 @@
 
 An AI-powered interactive fantasy text adventure engine. The world, characters, and story are all dynamically generated and evolved by a Large Language Model acting as the Game Master.
 
+In my first tests with claude-opus-4-6, I was very impressed by the insane yet believable story the LLM can create.
+
 ## Quick Start
 
 ```bash
@@ -10,7 +12,7 @@ npm install
 
 # 2. Configure your API key
 cp .env.example .env
-# Edit .env and add your OpenAI API key
+# Edit .env and add your OpenAI API key and/or your anthropic API key and decide what provider and model to use. anthropic / claude-opus-4-6 is highly recommended.
 
 # 3. Play
 npm start
@@ -109,3 +111,7 @@ Barrens like a barnacle on a hull...
 
 > 2
 ```
+
+# Warning, expensive!
+
+With Anthropics claude-opus-4-6, you get to spend a dollar fairly fast.
