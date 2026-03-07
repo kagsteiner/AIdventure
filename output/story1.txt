@@ -1,0 +1,470 @@
+
+
+  ╔══════════════════════════════════════════╗
+  ║           A I d v e n t u r e            ║
+  ║     AI-Powered Fantasy Text Adventure     ║
+  ╚══════════════════════════════════════════╝
+
+  No saved world found. Generating a new world...
+
+  Weaving the threads of a new world...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ~ ~  o  ~ ~
+_|_|_/|____
+|   LANTERN|
+|    QUAY  |
+|__==__==__|
+  ||    ||
+ ~~~  ~~~~~
+
+Dawn comes slowly to Tollmere, as if the marsh must be persuaded to release the night. Mist lies low over the
+black water, pearl-gray and dense enough to soften every shape into rumor. Beneath your boots, the planks of
+the Lantern Quay sweat river damp; they smell of tar, eel oil, wet reeds, and the faint sweetness of mushroom
+smoke from cookfires just waking on the barge-houses. Somewhere out in the channels, a bell rings once and is
+swallowed whole.
+
+Mira Fenwake's sealed note is still warm from her hand where it rests in your satchel, though she gave it to
+you before first light with the grave look of someone entrusting more than paper. Around you, Tollmere stirs:
+a child coaxes embers under a tea brazier, a rope-pulley creaks, a heron lifts from a piling with a sound like
+torn silk. Yet the quay feels wrong. Too many boats are tied fast. Too many ferrymen are ashore, watching the
+fog instead of working. On the water, a single lantern drifts past the pilings against the current, its flame
+unwavering inside blue glass.
+
+Then a second lantern appears beside it, and a third behind that—an orderly procession emerging from Fogmire
+Channel, where no boat should be this hour. But there is no boat. Only lights, gliding toward you through the
+mist as though carried by invisible hands.
+
+────────────────────────────────────────────────────────
+
+  1. Walk to the edge of the quay and try to intercept the drifting blue lanterns.
+  2. Find Mira Fenwake before the other dockworkers notice the lights.
+  3. Question the ferrymen watching the fog about the Candlewake's last route.
+  4. Check the half-burned canal map and head toward Fogmire Channel immediately.
+
+  [ 📍 Tollmere | → The Lantern Quay | Day 1 | dawn | 💰 12g ]
+
+PS C:\Users\agste\OneDrive\Development\AIdventure> cd game
+PS C:\Users\agste\OneDrive\Development\AIdventure\game> del *.*
+PS C:\Users\agste\OneDrive\Development\AIdventure\game> cd ..
+PS C:\Users\agste\OneDrive\Development\AIdventure> npm start
+
+> aidventure@1.0.0 start
+> node main.js
+
+
+  ╔══════════════════════════════════════════╗
+  ║           A I d v e n t u r e            ║
+  ║     AI-Powered Fantasy Text Adventure     ║
+  ╚══════════════════════════════════════════╝
+
+  No saved world found. Generating a new world...
+
+  Weaving the threads of a new world...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        _/\_           .  *  .
+   ____/    \____     * CORREN'S *
+  |  []  ||  []  |    .  STAKE  .
+  |__||__||__||__|       |  |
+  /|||\  /|||\  /||\    _|__|_
+ ~~|||~~~~|||~~~~|||~~ /______\
+ ~grass~grass~grass~~ /_||__||_\
+ ~~~~~~~~southward~~~~~~~~>>>~~~
+
+You have been walking the Rust Marches for eleven days, and still the color of it strikes you — that deep,
+arterial red-orange that stains the sky at the horizon line where the tall grasses bend and whisper against
+each other with a sound like brushed silk. Your boots are lacquered bone, Corroden-made, and they have held up
+better than the iron buckles on your pack, which crumbled to flakes on the third day. Everything metal dies
+quickly here. You learned that lesson with the compass, too — its needle frozen at an angle that points toward
+nothing you can name, its casing blooming with rust like a flower opening. You keep it anyway. The annotations
+in your journal told you to.
+
+Corren's Stake rises from the grassland like a splinter — a fortified outpost of glass-paned towers and
+bone-frame buildings, built where a massive skethren pincer was driven into the earth generations ago as a
+territorial marker. The outpost clings to it, structures lashed and bolted to the great curve of chitin. You
+arrived at midday, sun-scorched and thirsty, and were met by Thessaly Drum-Walker, an elder whose name you'd
+been given by a dying traveler four days east. She fed you. She let you rest. And then, as the afternoon light
+turned the color of old blood, she told you about the disturbances to the south — temporal eddies forming at
+Redsong Gulch, pools of frozen time appearing and vanishing like blisters on the landscape. She told you about
+her sister, locked mid-step in the Stillfall for thirty-two years. She told you the disturbances feel the
+same.
+
+Now you stand at the outpost's southern gate, the red grass stretching before you in an endless, shivering
+expanse. Your cracked compass needle twitches — not toward north, but toward something south, something
+pulling. A young scavenger named Vesker leans against the gate frame, tuning fork in hand, watching you with
+pale eyes that seem to be looking at where you'll be a half-second from now. "You feel it too," they say. It
+is not a question. The grass bends south, though there is no wind.
+
+────────────────────────────────────────────────────────
+
+  1. Head south toward Redsong Gulch immediately to investigate the temporal disturbances before nightfall.
+  2. Ask Vesker about their strange time-perception and invite them to accompany you.
+  3. Examine the cracked temporal compass and the strange annotations in your journal more carefully.
+  4. Visit the outpost's bone-and-glass trading post to gather supplies and information before departing.
+
+  [ 📍 The Rust Marches | → Outpost of Corren's Stake | Day 1 | late afternoon | 💰 12g ]
+
+> 2
+
+  ...
+
+
+  The world flickers... (LLM error: Unexpected token '`', "```json
+{
+"... is not valid JSON )
+
+  Try again, or type 'quit' to exit.
+
+  [ 📍 The Rust Marches | → Outpost of Corren's Stake | Day 1 | late afternoon | 💰 12g ]
+
+> 2
+
+  ...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You turn to Vesker, leaning there against the gate frame like someone waiting for a sentence they've already
+heard. The late afternoon light catches the chitin plates of their coat, throwing faint iridescent patterns
+across the bone-pale wood of the gate. "Your eyes," you say. "They're not tracking where I am. They're
+tracking where I'm about to be." Vesker's mouth twitches — not quite a smile, something more complicated. They
+tap the tuning fork against their thigh, and it hums a low, almost subsonic note that you feel more in your
+teeth than your ears.
+
+"It started two years ago," they say, and there's a practiced quality to it, like they've rehearsed this
+confession in the mirror. "Small things first. I'd flinch before someone dropped a cup. I'd answer a question
+before it was asked — people thought I was rude." They pause, watching the red grass bend southward. "Then it
+got worse. Conversations feel like I'm reading from a script someone else is still writing. I see the shape of
+the next few seconds, overlaid on this one, like — like a double-struck page in a book." They hold up the
+tuning fork. "This helps. The frequency grounds me. Keeps me *here*, in the present, instead of sliding
+forward." Their pale eyes meet yours, and for a moment you see something raw there — fear, carefully managed.
+"I've never practiced Cadence. Not once. So either this is something else entirely, or Drift can happen to
+people who never asked for it. Neither answer makes me sleep well."
+
+You ask if they'll walk with you to Redsong Gulch. Vesker is quiet for three heartbeats — and you notice their
+eyes unfocus slightly, as though watching the next few seconds unspool before committing to them. Then they
+push off the gate frame, tucking the tuning fork into a loop on their belt. "I was going to say yes before you
+asked," they say, and this time the smile reaches their eyes, though it's edged with something brittle.
+"Thessaly already packed me a bag. She knows things too, that woman — just the old-fashioned way." They hoist
+a small pack of lacquered hide and glass-stoppered bottles. "Besides. Whatever's happening at Redsong Gulch —
+whatever's pulling the grass south and making your dead compass twitch — I've been feeling it for days. Like a
+sound just below hearing. If it's related to what's happening to me, I need to know." They glance at the sky,
+where the sun is bleeding toward the horizon. "We've got maybe three hours of good light. We can make the
+halfway cairn by dark if we move. Or we wait for morning and arrive fresh. Your call — but I'll tell you this
+for free: the Marches at night have been strange lately. Stranger than usual."
+
+────────────────────────────────────────────────────────
+
+  1. Set out immediately to reach the halfway cairn before dark
+  2. Wait until morning to depart well-rested and in full daylight
+  3. Ask Vesker what they mean by 'stranger than usual' at night
+  4. Check in with Thessaly one last time before leaving
+
+  [ 📍 The Rust Marches | → Outpost of Corren's Stake | Day 1 | late afternoon | 💰 12g ]
+
+> 1
+
+  ...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    .  *  .      .        .   *    .
+  .    __|__  .    __|__     .   __|__
+     /|. . |\   /|. . |\     /|. . |\
+    / | . .|_\ / |..  |_\   / | .  |_\
+   |  |    |  |  |    |  | |  |    |  |
+   |__|____|  |__|____|  | |__|____|  |
+   .  .  .  .  .  .  .  .  .  .  .  .
+  ~~~~~~~~~~~~~~~~~~~~~~~~~red~grass~~~
+
+You step through the gate and the Marches swallow you. The red grass closes behind you and Vesker like a wound
+healing, and within a hundred paces Corren's Stake is just a dark jag against the sky, already looking
+ancient, already looking like something you dreamed. The trail south is not so much a path as an agreement
+among travelers — a corridor where the grass has been beaten down enough times that it merely reaches your
+waist instead of your shoulders. It smells of copper and dried sap, and beneath that, something older: ozone,
+the ghost-scent of disturbed time.
+
+Vesker walks slightly ahead of you, their gait oddly syncopated, as though they're stepping around obstacles
+you can't see. Every few minutes they tap the tuning fork against their hip bone and hold it near their ear,
+listening to a frequency you can only feel as a faint pressure behind your eyes. "Steady," they murmur once,
+though you're not sure if they're talking to you or to themselves. The sun descends in slow, bleeding stages,
+painting the grassland in shades of rust and bruise. And then, forty minutes into the walk, you see them.
+
+The Stillfall.
+
+Thessaly had told you the path would skirt the eastern edge of it, but nothing could have prepared you for the
+scale. Thousands of figures stand in the grass — Corroden men, women, children, their skethren mounts frozen
+mid-stride with legs raised and mandibles open. They are utterly motionless, locked in a moment thirty-two
+years gone. The light falls on them strangely, sliding off their skin as though they exist behind glass. A
+woman carries a child on her hip, her mouth open in what might have been a song. A young man reaches for a
+waterskin that hangs suspended in the air beside him, the water inside a crystalline stillness. You can see
+dust motes frozen in the air around them, tiny golden universes halted between one second and the next. Vesker
+stops walking. Their knuckles are white around the tuning fork. "Don't touch them," they whisper, and their
+voice is stripped of all its usual knowing ease. "Don't even brush the grass near them. The temporal boundary
+is — it's *sharp*. You cross it and you join them." You give the formation a wide berth, your heart hammering,
+and you do not look back, though you feel their silent thousands watching you with eyes that will never blink.
+
+The halfway cairn appears as the last copper light drains from the sky — a stack of lacquered bone markers,
+each one carved with distance notations and warnings in Corroden trade-script. Vesker translates the freshest
+one: *"Time pooling at Redsong. Do not proceed at night. The gulch drinks hours."* They set down their pack
+and begin unpacking a glass lantern filled with bioluminescent gel. The gel casts a blue-green glow that makes
+the red grass look almost black. In the distance, south, the grass bends toward something you cannot see, and
+your cracked compass needle is trembling so hard now that you can feel it buzzing through the casing in your
+pocket. The night sounds of the Marches are beginning — the chittering of small things in the grass, the low
+tonal hum that might be wind or might be something else entirely. And beneath it all, faint but undeniable, a
+rhythm. A pulse. Something south of here is beating like a heart.
+
+────────────────────────────────────────────────────────
+
+  1. Make camp at the cairn and rest until dawn before continuing to Redsong Gulch
+  2. Ask Vesker to use their tuning fork to try to identify the rhythm coming from the south
+  3. Study the journal annotations by lantern-light for any mention of Redsong Gulch or the Stillfall
+  4. Press on through the night toward Redsong Gulch despite the warning
+
+  [ 📍 The Rust Marches | → The Rust Marches — southern trail toward Redsong Gulch | Day 1 | dusk | 💰 12g ]
+
+
+> 2
+
+  ...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    .  *  .    .   *   .  *
+  .    _____     .    .
+ *   /     \   .  *  .   *
+    | () () |    HUMMM
+  . |   >   |  ~~~~~~~  .
+    |  \_/  | .  *  .
+ *   \_____/    .    *   .
+  ~~~~~~~~~~~~~~~~~~~  .
+    .  *  .  *   .  *  .
+
+Vesker looks at you for a long moment, and you watch the calculation happen behind their pale eyes — not the
+usual half-second foresight, but something more deliberate, more afraid. Then they nod, once, and draw the
+tuning fork from their belt with the careful reverence of a surgeon selecting a blade. "I've been trying not
+to listen to it," they admit quietly. "All day. It's like ignoring someone calling your name across a crowded
+room." They settle cross-legged on the packed earth beside the cairn, the blue-green lantern light pooling in
+the hollows of their face, and strike the tuning fork against the lacquered bone of the nearest marker.
+
+The note rings out — clean, steady, a middle pitch that hangs in the air like a plumb line. Vesker holds the
+fork up, tilting it slowly southward, and you watch their expression change. The practiced calm dissolves.
+Their pupils dilate. The fork begins to vibrate in a way that is visibly wrong — not a simple oscillation but
+a stuttering, arrhythmic shudder, as though the metal is trying to vibrate at two frequencies simultaneously.
+"It's not a heartbeat," Vesker says, their voice gone thin and distant. "It's a *counterbeat*. Something down
+there is producing a rhythm that's the exact inverse of the local timeflow — like a mirror of the Marches' own
+temporal signature, played backward." Their hand is shaking. The fork's note warps, dipping low, then
+shrieking high, and for one terrible instant Vesker *flickers* — their outline doubling, a ghost-image of them
+sitting half a second behind the real one, mouth open in a word not yet spoken. Then they slam the fork
+against their own knee and the doubling collapses. They gasp, eyes refocusing. "That's not natural Cadence.
+That's not even *human* Cadence. It's too precise, too complex — like a thousand Metronomists drumming in
+perfect unison, or —" They stop. Swallow. "Or like a machine."
+
+In the silence that follows, you both hear it: the southern rhythm has changed. It is louder now, just
+slightly, as though the act of listening to it with the tuning fork was a kind of introduction — a handshake
+accepted. The red grass around your camp leans south with renewed urgency, and the bioluminescent gel in the
+lantern flickers in time with the pulse, casting stuttering shadows that move a half-beat ahead of what should
+cast them. Your cracked compass buzzes in your pocket like a trapped insect. Vesker cradles the tuning fork
+against their chest, breathing hard. "Whatever that is," they say, "it knows we're here now. It *answered*."
+They look at you, and for the first time since you've met them, they are not looking at where you will be.
+They are looking at where you are, fully present, fully frightened. "We should decide what we're walking into
+before morning. Because I don't think Redsong Gulch is just a temporal disturbance. I think it's a door. And
+something on the other side just heard us knock."
+
+────────────────────────────────────────────────────────
+
+  1. Try to use the journal's strange annotations to cross-reference what Vesker described — a counter-rhythmic temporal signature
+  2. Set watches and rest until dawn, conserving strength for whatever awaits at Redsong Gulch
+  3. Attempt to tap a counter-rhythm on your lacquered staff and see if the southern pulse responds again
+  4. Ask Vesker what they saw during the moment they flickered — what the ghost-image of them experienced
+
+  [ 📍 The Rust Marches | → The Rust Marches — southern trail toward Redsong Gulch | Day 1 | night | 💰 12g ]
+
+
+
+    ┌─────────────────────┐
+    │ ~~≋~~ JOURNAL ~~≋~~ │
+    │  ◇ △ ○ ◇ △ ○ ◇ △ ○  │
+    │  ↓   ↓   ↓   ↓   ↓  │
+    │  ●───●───●───●───●  │
+    │  INVERSE CADENCE     │
+    │  mirror / door / key │
+    │  ▽ DO NOT ANSWER ▽   │
+    └─────────────────────┘
+
+You pull the journal from your pack, and the lantern's blue-green light falls across its cover like water over
+stone. The leather is Corroden-made — lacquered against the Marches' corrosive haste — but the annotations
+inside are not yours. They never were. You found this journal on the body of the traveler who gave you
+Thessaly's name, four days east of here, and you have read it cover to cover three times without understanding
+more than fragments. Now, with the southern pulse thrumming through the earth beneath you and Vesker's words —
+*counterbeat, inverse, machine* — still hanging in the air, you open it again with new eyes.
+
+The early pages are mundane. Supply lists, route notations, sketches of skethren anatomy. But halfway through,
+the handwriting changes — becomes tighter, more urgent, slanting hard to the right as though the writer was
+being pulled forward faster than their hand could follow. Here: a diagram of concentric circles labeled
+*temporal inversion point*, with a location marked in Corroden trade-script that Vesker, leaning over your
+shoulder, translates in a whisper: *Redsong Gulch, southern chamber.* Beside it, a notation you can read
+yourself: *"The inverse cadence is not an anomaly. It is a SIGNAL. Frequency matches no known Metronomist
+tradition. Matches no living rhythm. It plays the world's timeflow backward — not to stop time, but to OPEN
+it. A door in the substance of seconds."* You turn the page and your breath catches. The next entry is written
+in different ink — darker, older somehow — and as you watch, the edges of the letters brown and curl, the
+paper aging beneath the words as though the ink itself carries temporal weight. It reads: *"Do not answer the
+signal. Do not harmonize. The door opens from both sides, and what waits on the other side has been waiting
+since the First Lament. It is not patient. It is simply SLOW."* The words crumble to dust as you finish
+reading them, leaving a blank page bordered by the ghost-stain of vanished ink.
+
+Vesker sits back, their face bloodless in the lantern glow. "That last bit," they say, and their voice is
+barely a voice at all. "The ink that aged as you read it. I've heard of that. Messages that arrive before
+they're sent, that destroy themselves after delivery. That's how the Lament Seekers communicate. That's how
+*the Metronome* communicates." They tap the tuning fork against their palm — a nervous habit, no strike, no
+note. "Whoever carried this journal before you, they were either working with the Lament Seekers or being
+warned by them. Either way —" The southern pulse surges, a single heavy throb that you feel in your molars,
+and the lantern gel flares bright enough to throw your shadows thirty feet into the bending grass. Then
+silence. Perfect, ringing silence, as though the night itself is holding its breath. Your compass buzzes once
+in your pocket and goes still. Vesker's eyes are wide, fixed on the southern darkness. "It heard its name,"
+they whisper.
+
+────────────────────────────────────────────────────────
+
+  1. Try to sleep in shifts and head to Redsong Gulch at first light
+  2. Press on toward Redsong Gulch now, through the dark, before whatever is there has more time to prepare
+  3. Study the rest of the journal more carefully for clues about the Lament Seekers and the Metronome
+  4. Ask Vesker to use their tuning fork to map the edges of the signal — carefully, without answering it
+
+  [ 📍 The Rust Marches | → The Rust Marches — southern trail toward Redsong Gulch | Day 1 | late night | 💰 12g ]
+
+
+> 1
+
+  ...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ~~~~~|||~~~~~|||~~~~~
+   ~~  R E D S O N G  ~~
+    ~~/|\~~~/|\~~~/|\~~
+   _//_\\__//_\\__//_\\_
+  |  .  .  .  .  .  .  |
+  | .  ~~drain~~  .  .  |
+   \  .  . \|/ .  .  /
+    \___.___.v.___.__/
+        \       /
+         \_____/
+
+You take first watch. It is the longest three hours of your life. The bioluminescent lantern pulses in
+syncopation with the southern rhythm — blue-green, blue-green, dark, blue-green — and you find yourself
+counting the intervals, mapping the pattern against the beat of your own heart. They do not align. They
+*almost* align, which is worse, like two melodies played a quarter-tone apart, producing a dissonance that
+nests behind your sternum and buzzes there like a wasp. Twice you catch the red grass at the edge of the
+lantern light moving in ways that have nothing to do with wind — individual stalks bending, straightening,
+bending again in sequence, tracing shapes that might be letters in a language written by something that thinks
+in centuries. You do not read them. You grip your lacquered staff across your knees and watch the southern
+dark and refuse to listen to the part of your mind that wants to hum along.
+
+Vesker's shift is worse, though you only learn this in fragments. You sleep shallowly, dreaming of pendulums
+and cracked glass, and wake twice — once to the sound of Vesker striking their tuning fork with desperate
+urgency, and once to silence so absolute it feels like deafness. In the gray nothing before dawn, you open
+your eyes to find Vesker sitting rigid beside the lantern, both hands pressed flat against the earth. "It
+changed tempo around the third hour," they say without looking at you. Their voice is hoarse. "Faster. Like it
+was excited. And I —" They hold up their right hand. In the pre-dawn gloom, you can see it clearly: the
+faintest ghost-image trailing their fingers, a translucent echo a half-second behind every movement. Their
+Drift is worse. "I flickered twice in my sleep. I felt it happen, like falling off a step that isn't there."
+They pull their hand back and tuck it into their coat. "We should move. Whatever's in that gulch, I'd rather
+face it in daylight than spend another night within earshot."
+
+You break camp as the first red-gold light cracks the eastern horizon, painting the Marches in fresh rust. The
+dried skethren meat is tough and salty and exactly what your body needs; the water in your skin tastes faintly
+of copper, the Marches leaching into everything. You walk south. The trail narrows. The grass grows taller —
+shoulder height, then higher, the stalks thickening until they resemble something closer to bamboo, their
+surfaces slick with a reddish resin that smells of ozone and old pennies. The southern pulse is no longer
+subtle. You feel it through the soles of your boots, a steady *thrum-thrum-thrum* that vibrates up through
+your ankles and into the bones of your legs. Vesker walks beside you now, not ahead, their tuning fork
+clutched in one white-knuckled fist. After an hour the grass parts like a curtain and Redsong Gulch opens
+before you — a jagged wound in the earth, perhaps two hundred feet across and deep enough that the bottom is
+lost in shadow and a faint, shimmering haze that you recognize with a cold lurch in your stomach as temporal
+distortion. The air above the gulch *ripples*. You can see the far edge clearly, but the space between here
+and there seems to contain too many moments, layered and translucent, like looking through a stack of thin
+glass. And from the depths, rising like heat from a forge, comes the rhythm — steady, mechanical, impossibly
+precise. Not a heartbeat. A *ticking*. Vesker's breath hitches beside you. Along the gulch's rim, you can see
+paths carved into the rock face, switchbacking down into the haze. Near the top of the nearest path, driven
+into the stone, a bone marker bears fresh Corroden script. And thirty feet to your left, half-hidden in the
+tall grass, a figure sits cross-legged and motionless, watching you with eyes that flicker at the edges like a
+candle in a draft.
+
+────────────────────────────────────────────────────────
+
+  1. Approach the flickering figure cautiously, staff raised
+  2. Call out to the figure and demand they identify themselves
+  3. Ignore the figure for now and examine the bone marker's inscription
+  4. Ask Vesker if they can see who — or what — the figure is with their foresight
+
+  [ 📍 The Rust Marches | → The Rust Marches — southern trail toward Redsong Gulch | Day 2 | dawn | 💰 12g ]
+
+  > 4
+
+  ...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    _____/|  figure  |\______
+   /  red   \~~~~~~~~/  red   \
+  / grasses  \||||||/ grasses  \
+ |~~~~~~~~~~~~vvvvvv~~~~~~~~~~~~|
+  \   REDSONG  GULCH          /
+   \    ~~~shimmer~~~        /
+    \________________________/
+     \   thrum thrum thrum  /
+      \____________________/
+
+You keep your voice low, barely above the hum of the gulch. "Vesker. The figure — thirty feet left, in the
+grass. Can you see what they're about to do?" Vesker's eyes are already sliding in that direction, their
+pupils doing that strange unfocused dance you've come to recognize as the foresight pulling them forward. For
+a moment their gaze locks onto the figure and you see the effort in their jaw, the tendons in their neck
+standing taut as bowstrings. Then they flinch as if struck, and their hand flies to the tuning fork, striking
+it hard against their thigh. The note rings out, sharp and grounding, and Vesker staggers half a step sideways
+into you.
+
+"I can't read them," Vesker hisses, and there is something close to panic stitched into the words. "Their
+timeline is — it's *shredded*. Like looking at a reflection in broken water. They're in this second and about
+six others simultaneously, and none of the futures line up. I've never —" They press the humming fork against
+their temple, steadying themselves. "That's heavy Drift. Heavier than anything I've felt. Whoever that is,
+they've used enough Cadence to half-eject themselves from linear time." The ghost-image trailing Vesker's
+right hand flares briefly, sympathetically, before fading.
+
+The figure moves. Not stands — *shifts*, one moment sitting cross-legged in the grass and the next already
+upright, the intervening motion simply absent, as though someone cut frames from a reel of film. In the pale
+morning light you can see them clearly now: a gaunt man in clothing that refuses to belong to any single era —
+a high-collared coat that might be three hundred years old layered over a vest cut in a style you've never
+seen, fabrics that shimmer between threadbare and pristine depending on the angle. His edges flicker
+constantly, a guttering silhouette, and his sharp-featured face wears an expression of studied, almost
+theatrical, calm. He raises one hand — the motion stuttering, arriving before it begins — and speaks in a
+voice that reaches you with a faint echo preceding it, his words arriving a half-breath before his lips form
+them. "The Drum-Walker's errand runners," he says, and the smile that follows is thin as a wire. "I wondered
+when she'd send someone. I've been sitting here for —" He pauses, tilts his head as if consulting some
+internal clock. "Three days? Five hours? Time is somewhat academic this close to the rim." His flickering gaze
+settles on Vesker, and something sharpens in it — recognition, not of the person, but of the *condition*.
+"Oh," he says softly, and the theatrical affect drops for just a moment. "Oh, you poor creature. You're not
+even a practitioner, are you? That's *natural* Drift." He takes a step closer, and the grass around his boots
+ages and desiccates in a small circle, crisping to gray. "My name is Endric Vael. I was once of the Order of
+the Unblinking, before they decided my methods were inconvenient. And I have been studying this gulch for
+longer than I can reliably measure." His eyes move to you, calculating, the flicker at his edges intensifying.
+"The question is whether you're here to help me, hinder me, or simply die in an interesting way. The gulch
+accommodates all three."
+
+────────────────────────────────────────────────────────
+
+  1. Ask Endric Vael what he's learned about the gulch and the ticking sound coming from below
+  2. Demand to know his intentions — is he working with the Lament Seekers?
+  3. Keep your distance and read the fresh Corroden script on the bone marker before engaging further
+  4. Tell Vesker to stay back while you approach Endric alone
+
+  [ 📍 The Rust Marches | → The Rust Marches — southern trail toward Redsong Gulch | Day 2 | dawn | 💰 12g ]
