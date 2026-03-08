@@ -5,8 +5,53 @@
  * Set LLM_PROVIDER in .env to "openai" or "anthropic".
  */
 
+import fs from "fs";
+import path from "path";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+
+// --- LLM request/response logging ---
+
+const LLM_LOG_DIR = path.join(process.cwd(), "logs");
+const LLM_LOG_FILE = path.join(LLM_LOG_DIR, "llm.log");
+
+const TRUNCATE_SYSTEM = 2000;
+const TRUNCATE_USER = 3000;
+
+function ensureLogDir() {
+  try {
+    fs.mkdirSync(LLM_LOG_DIR, { recursive: true });
+  } catch (_) {}
+}
+
+/**
+ * Append a single log entry (request, response, or parse error) to logs/llm.log.
+ * @param {"request"|"response"|"parse_error"} kind
+ * @param {object} data
+ */
+function logToFile(kind, data) {
+  try {
+    ensureLogDir();
+    const ts = new Date().toISOString();
+    const lines = [`\n${"=".repeat(60)}`, `[${ts}] ${kind.toUpperCase()}`];
+
+    if (kind === "request") {
+      lines.push(`provider: ${data.provider}`, `model: ${data.model}`, `gameloop: ${data.gameloop}`, `caller: ${data.caller}`);
+      const sys = data.systemPrompt.length > TRUNCATE_SYSTEM ? data.systemPrompt.slice(0, TRUNCATE_SYSTEM) + "\n... (truncated)" : data.systemPrompt;
+      const usr = data.userPrompt.length > TRUNCATE_USER ? data.userPrompt.slice(0, TRUNCATE_USER) + "\n... (truncated)" : data.userPrompt;
+      lines.push("--- system ---", sys, "--- user ---", usr);
+    } else if (kind === "response") {
+      lines.push("--- raw body ---", data.raw === undefined || data.raw === null ? String(data.raw) : data.raw);
+    } else if (kind === "parse_error") {
+      lines.push(`error: ${data.errorMessage}`, "--- raw body (failed to parse) ---", data.raw === undefined || data.raw === null ? String(data.raw) : data.raw);
+    }
+
+    lines.push("=".repeat(60));
+    fs.appendFileSync(LLM_LOG_FILE, lines.join("\n") + "\n");
+  } catch (e) {
+    console.error("[llm] Failed to write llm.log:", e.message);
+  }
+}
 
 const provider = () => (process.env.LLM_PROVIDER || "anthropic").toLowerCase();
 
@@ -140,12 +185,31 @@ function extractJSON(text) {
  * @returns {object} Parsed JSON from the LLM response
  */
 export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = {}) {
+  const p = provider();
   const model = resolveModel(gameloop);
   const fullSystem = systemPrompt + langDirective();
-  const raw = provider() === "openai"
+
+  logToFile("request", {
+    provider: p,
+    model,
+    gameloop,
+    caller: "queryLLM",
+    systemPrompt: fullSystem,
+    userPrompt,
+  });
+
+  const raw = p === "openai"
     ? await openaiJSON(fullSystem, userPrompt, model)
     : await anthropicJSON(fullSystem, userPrompt, model);
-  return JSON.parse(extractJSON(raw));
+
+  logToFile("response", { raw });
+
+  try {
+    return JSON.parse(extractJSON(raw));
+  } catch (err) {
+    logToFile("parse_error", { errorMessage: err.message, raw });
+    throw err;
+  }
 }
 
 /**
@@ -157,9 +221,23 @@ export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = 
  * @param {boolean} [options.gameloop=false] - Use the game-loop model (LLM_GAMELOOP_MODEL)
  */
 export async function queryLLMText(systemPrompt, userPrompt, { gameloop = false } = {}) {
+  const p = provider();
   const model = resolveModel(gameloop);
   const fullSystem = systemPrompt + langDirective();
-  return provider() === "openai"
+
+  logToFile("request", {
+    provider: p,
+    model,
+    gameloop,
+    caller: "queryLLMText",
+    systemPrompt: fullSystem,
+    userPrompt,
+  });
+
+  const raw = p === "openai"
     ? await openaiText(fullSystem, userPrompt, model)
     : await anthropicText(fullSystem, userPrompt, model);
+
+  logToFile("response", { raw });
+  return raw;
 }
