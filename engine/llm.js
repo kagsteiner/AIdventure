@@ -15,9 +15,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const LLM_LOG_DIR = path.join(process.cwd(), "logs");
 const LLM_LOG_FILE = path.join(LLM_LOG_DIR, "llm.log");
 
-const TRUNCATE_SYSTEM = 2000;
-const TRUNCATE_USER = 3000;
-
 function ensureLogDir() {
   try {
     fs.mkdirSync(LLM_LOG_DIR, { recursive: true });
@@ -37,9 +34,7 @@ function logToFile(kind, data) {
 
     if (kind === "request") {
       lines.push(`provider: ${data.provider}`, `model: ${data.model}`, `gameloop: ${data.gameloop}`, `caller: ${data.caller}`);
-      const sys = data.systemPrompt.length > TRUNCATE_SYSTEM ? data.systemPrompt.slice(0, TRUNCATE_SYSTEM) + "\n... (truncated)" : data.systemPrompt;
-      const usr = data.userPrompt.length > TRUNCATE_USER ? data.userPrompt.slice(0, TRUNCATE_USER) + "\n... (truncated)" : data.userPrompt;
-      lines.push("--- system ---", sys, "--- user ---", usr);
+      lines.push("--- system ---", data.systemPrompt, "--- user ---", data.userPrompt);
     } else if (kind === "response") {
       lines.push("--- raw body ---", data.raw === undefined || data.raw === null ? String(data.raw) : data.raw);
     } else if (kind === "parse_error") {
@@ -128,23 +123,62 @@ async function openaiText(systemPrompt, userPrompt, model) {
 
 // --- Anthropic helpers ---
 
-async function anthropicJSON(systemPrompt, userPrompt, model) {
+/**
+ * Convert a system prompt (string or array of { text, cache } blocks)
+ * into the Anthropic API format. When the system is an array, blocks
+ * with `cache: true` get `cache_control: { type: "ephemeral" }`.
+ *
+ * @param {string|Array<{text: string, cache?: boolean}>} system
+ * @param {string} [suffix] - Optional text appended to the last block
+ * @returns {string|Array<{type: string, text: string, cache_control?: object}>}
+ */
+function formatAnthropicSystem(system, suffix = "") {
+  if (typeof system === "string") {
+    return system + suffix;
+  }
+
+  return system.map((block, i) => {
+    const isLast = i === system.length - 1;
+    const entry = { type: "text", text: block.text + (isLast ? suffix : "") };
+    if (block.cache) {
+      entry.cache_control = { type: "ephemeral", ttl: "1h" };
+    }
+    return entry;
+  });
+}
+
+function logCacheUsage(response) {
+  const u = response.usage;
+  if (!u) return;
+  const cacheWrite = u.cache_creation_input_tokens ?? 0;
+  const cacheRead = u.cache_read_input_tokens ?? 0;
+  if (cacheWrite || cacheRead) {
+    logToFile("response", {
+      raw: `[cache] write=${cacheWrite} read=${cacheRead} input=${u.input_tokens} output=${u.output_tokens}`,
+    });
+  }
+}
+
+async function anthropicJSON(system, userPrompt, model) {
+  const jsonSuffix = "\n\nYou MUST respond with valid JSON only. No markdown fences, no extra text.";
   const response = await getAnthropicClient().messages.create({
     model,
     max_tokens: 8192,
-    system: systemPrompt + "\n\nYou MUST respond with valid JSON only. No markdown fences, no extra text.",
+    system: formatAnthropicSystem(system, jsonSuffix),
     messages: [{ role: "user", content: userPrompt }],
   });
+  logCacheUsage(response);
   return response.content[0].text.trim();
 }
 
-async function anthropicText(systemPrompt, userPrompt, model) {
+async function anthropicText(system, userPrompt, model) {
   const response = await getAnthropicClient().messages.create({
     model,
     max_tokens: 8192,
-    system: systemPrompt,
+    system: formatAnthropicSystem(system),
     messages: [{ role: "user", content: userPrompt }],
   });
+  logCacheUsage(response);
   return response.content[0].text.trim();
 }
 
@@ -154,6 +188,29 @@ function langDirective() {
   const lang = process.env.GAME_LANGUAGE || "English";
   if (lang.toLowerCase() === "english") return "";
   return `\n\nIMPORTANT: All player-facing text (narrative, choices, descriptions, quest names, item names) MUST be written in ${lang}. Internal JSON keys remain in English.`;
+}
+
+/**
+ * Apply the language directive to a system prompt (string or block array).
+ * Appends to the last block's text so cache keys remain stable when lang is fixed.
+ */
+function applyLangDirective(system) {
+  const directive = langDirective();
+  if (!directive) return system;
+
+  if (typeof system === "string") return system + directive;
+
+  const blocks = system.map((b) => ({ ...b }));
+  blocks[blocks.length - 1].text += directive;
+  return blocks;
+}
+
+/**
+ * Flatten system blocks to a single string for logging purposes.
+ */
+function systemToLogString(system) {
+  if (typeof system === "string") return system;
+  return system.map((b) => b.text).join("\n\n---\n\n");
 }
 
 // --- Shared utilities ---
@@ -178,7 +235,9 @@ function extractJSON(text) {
 /**
  * Send a prompt to the LLM and get back parsed JSON.
  *
- * @param {string} systemPrompt - The system-level instruction
+ * @param {string|Array<{text: string, cache?: boolean}>} systemPrompt
+ *   Either a plain string or an array of blocks. Blocks with `cache: true`
+ *   receive Anthropic's `cache_control: { type: "ephemeral" }`.
  * @param {string} userPrompt   - The user-level content (context + action)
  * @param {object} [options]
  * @param {boolean} [options.gameloop=false] - Use the game-loop model (LLM_GAMELOOP_MODEL)
@@ -187,19 +246,19 @@ function extractJSON(text) {
 export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = {}) {
   const p = provider();
   const model = resolveModel(gameloop);
-  const fullSystem = systemPrompt + langDirective();
+  const fullSystem = applyLangDirective(systemPrompt);
 
   logToFile("request", {
     provider: p,
     model,
     gameloop,
     caller: "queryLLM",
-    systemPrompt: fullSystem,
+    systemPrompt: systemToLogString(fullSystem),
     userPrompt,
   });
 
   const raw = p === "openai"
-    ? await openaiJSON(fullSystem, userPrompt, model)
+    ? await openaiJSON(typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem), userPrompt, model)
     : await anthropicJSON(fullSystem, userPrompt, model);
 
   logToFile("response", { raw });
@@ -215,7 +274,7 @@ export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = 
 /**
  * Send a prompt expecting free-form text (used for summaries).
  *
- * @param {string} systemPrompt
+ * @param {string|Array<{text: string, cache?: boolean}>} systemPrompt
  * @param {string} userPrompt
  * @param {object} [options]
  * @param {boolean} [options.gameloop=false] - Use the game-loop model (LLM_GAMELOOP_MODEL)
@@ -223,19 +282,19 @@ export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = 
 export async function queryLLMText(systemPrompt, userPrompt, { gameloop = false } = {}) {
   const p = provider();
   const model = resolveModel(gameloop);
-  const fullSystem = systemPrompt + langDirective();
+  const fullSystem = applyLangDirective(systemPrompt);
 
   logToFile("request", {
     provider: p,
     model,
     gameloop,
     caller: "queryLLMText",
-    systemPrompt: fullSystem,
+    systemPrompt: systemToLogString(fullSystem),
     userPrompt,
   });
 
   const raw = p === "openai"
-    ? await openaiText(fullSystem, userPrompt, model)
+    ? await openaiText(typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem), userPrompt, model)
     : await anthropicText(fullSystem, userPrompt, model);
 
   logToFile("response", { raw });

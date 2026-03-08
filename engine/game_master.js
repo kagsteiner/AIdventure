@@ -74,25 +74,38 @@ Important:
 }
 
 /**
- * Assemble the full context document for the LLM.
+ * Build the system message as an array of blocks with prompt caching.
+ * Block 1 — Game Master instructions (stable per genre, cached)
+ * Block 2 — World lore + characters (stable across turns, cached)
  */
-async function buildContext(playerAction) {
-  const [world, characters, state, memory] = await Promise.all([
+async function buildCachedSystemBlocks(storyType) {
+  const [world, characters] = await Promise.all([
     loadWorld(),
     loadCharacters(),
+  ]);
+
+  return [
+    {
+      text: buildSystemPrompt(storyType),
+      cache: true,
+    },
+    {
+      text: `## World Lore\n\n${world}\n\n## Characters\n\n${JSON.stringify(characters, null, 2)}`,
+      cache: true,
+    },
+  ];
+}
+
+/**
+ * Build the user message containing only dynamic, per-turn content.
+ */
+async function buildUserMessage(playerAction) {
+  const [state, memory] = await Promise.all([
     loadState(),
     getFullMemoryContext(),
   ]);
 
-  return `## World Lore
-
-${world}
-
-## Characters
-
-${JSON.stringify(characters, null, 2)}
-
-## Current State
+  return `## Current State
 
 ${JSON.stringify(state, null, 2)}
 
@@ -116,12 +129,13 @@ Respond as the Game Master.`;
  * @returns {object} Parsed response with narrative, state_changes, etc.
  */
 export async function processTurn(playerAction) {
-  const context = await buildContext(playerAction);
   const state = await loadState();
   const storyType = state?.genre || 'sanderson_fantasy';
 
-  const systemPrompt = buildSystemPrompt(storyType);
-  const result = await queryLLM(systemPrompt, context, { gameloop: true });
+  const systemBlocks = await buildCachedSystemBlocks(storyType);
+  const userMessage = await buildUserMessage(playerAction);
+
+  const result = await queryLLM(systemBlocks, userMessage, { gameloop: true });
 
   if (!result.narrative) {
     result.narrative = "The world shifts around you, but nothing notable happens.";
