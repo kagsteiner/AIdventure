@@ -43,7 +43,7 @@ You MUST respond with a JSON object containing these exact keys:
     "reputation": {}
   },
 
-  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the world and their starting situation. Include sensory details. End with a moment of tension or curiosity.)",
+  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the world and their starting situation. Include details about your surroundings. End with a moment of tension or curiosity.)",
 
   "ascii_art": "string (simple ASCII art of the starting location, max 8 lines)",
 
@@ -52,7 +52,7 @@ You MUST respond with a JSON object containing these exact keys:
 
 Generate 6-10 interesting characters across different locations.
 Make the starting quest compelling but not overwhelming.
-The tone should be literary fantasy — think Ursula K. Le Guin meets a tabletop RPG.`;
+The tone should be classic yet creative fantasy — think Brandon Sanderson meets a tabletop RPG.`;
 
 const USER_PROMPT = `Generate a complete fantasy world for a new adventure game.
 Be creative and original. Avoid generic fantasy tropes where possible.

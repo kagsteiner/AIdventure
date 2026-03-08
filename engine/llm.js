@@ -32,10 +32,33 @@ function getAnthropicClient() {
   return anthropicClient;
 }
 
+// --- Model resolution ---
+
+const DEFAULT_MODELS = {
+  openai: "gpt-4o",
+  anthropic: "claude-opus-4-0-20250514",
+};
+
+const DEFAULT_GAMELOOP_MODELS = {
+  openai: "gpt-4o",
+  anthropic: "claude-sonnet-4-20250514",
+};
+
+/**
+ * Resolve which model to use.
+ * @param {boolean} gameloop - If true, prefer LLM_GAMELOOP_MODEL for cheaper game-loop calls.
+ */
+function resolveModel(gameloop = false) {
+  const p = provider();
+  if (gameloop && process.env.LLM_GAMELOOP_MODEL) {
+    return process.env.LLM_GAMELOOP_MODEL;
+  }
+  return process.env.LLM_MODEL || (gameloop ? DEFAULT_GAMELOOP_MODELS[p] : DEFAULT_MODELS[p]);
+}
+
 // --- OpenAI helpers ---
 
-async function openaiJSON(systemPrompt, userPrompt) {
-  const model = process.env.LLM_MODEL || "gpt-4o";
+async function openaiJSON(systemPrompt, userPrompt, model) {
   const response = await getOpenAIClient().chat.completions.create({
     model,
     response_format: { type: "json_object" },
@@ -47,8 +70,7 @@ async function openaiJSON(systemPrompt, userPrompt) {
   return response.choices[0].message.content.trim();
 }
 
-async function openaiText(systemPrompt, userPrompt) {
-  const model = process.env.LLM_MODEL || "gpt-4o";
+async function openaiText(systemPrompt, userPrompt, model) {
   const response = await getOpenAIClient().chat.completions.create({
     model,
     messages: [
@@ -61,8 +83,7 @@ async function openaiText(systemPrompt, userPrompt) {
 
 // --- Anthropic helpers ---
 
-async function anthropicJSON(systemPrompt, userPrompt) {
-  const model = process.env.LLM_MODEL || "claude-opus-4-0-20250514";
+async function anthropicJSON(systemPrompt, userPrompt, model) {
   const response = await getAnthropicClient().messages.create({
     model,
     max_tokens: 8192,
@@ -72,8 +93,7 @@ async function anthropicJSON(systemPrompt, userPrompt) {
   return response.content[0].text.trim();
 }
 
-async function anthropicText(systemPrompt, userPrompt) {
-  const model = process.env.LLM_MODEL || "claude-opus-4-0-20250514";
+async function anthropicText(systemPrompt, userPrompt, model) {
   const response = await getAnthropicClient().messages.create({
     model,
     max_tokens: 8192,
@@ -115,22 +135,31 @@ function extractJSON(text) {
  *
  * @param {string} systemPrompt - The system-level instruction
  * @param {string} userPrompt   - The user-level content (context + action)
+ * @param {object} [options]
+ * @param {boolean} [options.gameloop=false] - Use the game-loop model (LLM_GAMELOOP_MODEL)
  * @returns {object} Parsed JSON from the LLM response
  */
-export async function queryLLM(systemPrompt, userPrompt) {
+export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = {}) {
+  const model = resolveModel(gameloop);
   const fullSystem = systemPrompt + langDirective();
   const raw = provider() === "openai"
-    ? await openaiJSON(fullSystem, userPrompt)
-    : await anthropicJSON(fullSystem, userPrompt);
+    ? await openaiJSON(fullSystem, userPrompt, model)
+    : await anthropicJSON(fullSystem, userPrompt, model);
   return JSON.parse(extractJSON(raw));
 }
 
 /**
  * Send a prompt expecting free-form text (used for summaries).
+ *
+ * @param {string} systemPrompt
+ * @param {string} userPrompt
+ * @param {object} [options]
+ * @param {boolean} [options.gameloop=false] - Use the game-loop model (LLM_GAMELOOP_MODEL)
  */
-export async function queryLLMText(systemPrompt, userPrompt) {
+export async function queryLLMText(systemPrompt, userPrompt, { gameloop = false } = {}) {
+  const model = resolveModel(gameloop);
   const fullSystem = systemPrompt + langDirective();
   return provider() === "openai"
-    ? await openaiText(fullSystem, userPrompt)
-    : await anthropicText(fullSystem, userPrompt);
+    ? await openaiText(fullSystem, userPrompt, model)
+    : await anthropicText(fullSystem, userPrompt, model);
 }

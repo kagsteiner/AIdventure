@@ -111,7 +111,7 @@ Respond as the Game Master.`;
 export async function processTurn(playerAction) {
   const context = await buildContext(playerAction);
 
-  const result = await queryLLM(SYSTEM_PROMPT, context);
+  const result = await queryLLM(SYSTEM_PROMPT, context, { gameloop: true });
 
   if (!result.narrative) {
     result.narrative = "The world shifts around you, but nothing notable happens.";

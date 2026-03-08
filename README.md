@@ -70,10 +70,11 @@ Your progress is saved automatically. Run `npm start` again to resume.
 
 Edit `.env` to customize:
 
-- `OPENAI_API_KEY` — Your OpenAI API key (required)
-- `ANTHROPIC_API_KEY` — Your Anthropic API key (required)
-- `LLM_PROVIDER` = anthropic or openai
-- `LLM_MODEL` — Model name (default: `gpt-5.4`)
+- `OPENAI_API_KEY` — Your OpenAI API key (required for openai provider)
+- `ANTHROPIC_API_KEY` — Your Anthropic API key (required for anthropic provider)
+- `LLM_PROVIDER` — `anthropic` (default) or `openai`. Both models must be from the same provider.
+- `LLM_MODEL` — Model for initial story/world building (default: `claude-opus-4-0-20250514` / `gpt-4o`). A thinking-capable model is recommended for this complex initial task.
+- `LLM_GAMELOOP_MODEL` — Model for the game loop and summarization (optional). Falls back to `LLM_MODEL` if not set. Use a cheaper model here to save cost, e.g. `claude-sonnet-4-6`.
 - `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc. (never tested this)
 
 ## Reset

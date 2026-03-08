@@ -60,7 +60,7 @@ Write in past tense, third person. Keep it under 500 words.`;
 
   const userPrompt = `${existingSummary ? `Previous summary:\n${existingSummary}\n\n` : ""}New entries to incorporate:\n\n${entries.join("\n\n")}`;
 
-  const summary = await queryLLMText(systemPrompt, userPrompt);
+  const summary = await queryLLMText(systemPrompt, userPrompt, { gameloop: true });
 
   await saveSummary(summary);
 }
