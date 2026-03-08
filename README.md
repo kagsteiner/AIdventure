@@ -6,9 +6,15 @@ This node.js app creates such adventures. It is an experiment to see whether, wi
 
 ## What is it?
 
-An AI-powered interactive fantasy text adventure engine. The world, characters, and story are all dynamically generated and evolved by a Large Language Model acting as the Game Master.
+An AI-powered interactive text adventure engine that supports multiple story genres and writing styles. The world, characters, and story are all dynamically generated and evolved by a Large Language Model acting as the Game Master.
 
-In my first tests with claude-opus-4-6, I was very impressed by the insane yet believable story the LLM can create.
+Choose from several adventure types:
+- **Sanderson-Style Fantasy** - Epic fantasy with intricate hard magic systems in the style of Brandon Sanderson
+- **Tolkien-Style Fantasy** - Classic high fantasy with rich mythology in the tradition of Middle-earth
+- **Space Opera Sci-Fi** - Grand galactic adventures in the style of Hyperion Cantos and John Scalzi
+- **Cosmic Horror** - Creepy, unsettling tales blending H.P. Lovecraft and Stephen King
+
+Each genre comes with carefully crafted prompts that guide the LLM to write in the appropriate style, including the distinctive prose and worldbuilding approaches of these celebrated authors.
 
 ## Quick Start
 
@@ -26,7 +32,7 @@ npm start
 
 ## How It Works
 
-On first launch the engine asks the LLM to create an entire fantasy world — lore, geography, factions, NPCs, and a starting quest. Everything is persisted to plain files in `game/`:
+On first launch, you select your preferred story type (fantasy, sci-fi, or horror). Then the engine asks the LLM to create an entire world — lore, geography, factions, NPCs, and a starting quest, all tailored to your chosen genre and writing style. Everything is persisted to plain files in `game/`:
 
 | File | Purpose |
 |---|---|
@@ -45,6 +51,7 @@ main.js                 Entry point
 engine/
   engine.js             Game loop (display → input → LLM → update)
   llm.js                LLM abstraction layer (OpenAI-compatible)
+  story_types.js        Genre configurations and writing style prompts
   world_builder.js      Initial world generation
   game_master.js        Turn-by-turn narrative and state
   state_manager.js      File I/O for game state
@@ -91,10 +98,26 @@ npm start
 ```
   ╔══════════════════════════════════════════╗
   ║           A I d v e n t u r e            ║
-  ║     AI-Powered Fantasy Text Adventure     ║
+  ║     AI-Powered Text Adventure            ║
   ╚══════════════════════════════════════════╝
 
   No saved world found. Generating a new world...
+
+  Select your adventure type:
+
+    1. Sanderson-Style Fantasy
+       Epic fantasy with intricate magic systems and complex worldbuilding
+
+    2. Tolkien-Style Fantasy
+       Classic high fantasy in the tradition of Middle-earth
+
+    3. Space Opera Sci-Fi
+       Grand space adventure in the style of Hyperion Cantos or John Scalzi
+
+    4. Cosmic Horror
+       Creepy, unsettling tales in the style of Lovecraft and Stephen King
+
+  Choose (1-4): 1
 
   Weaving the threads of a new world...
 
