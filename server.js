@@ -37,6 +37,16 @@ app.use(express.static("web"));
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+// Ping every connected client every 30s to keep the connection alive
+// through nginx and other proxies that have idle timeouts.
+const PING_INTERVAL = 30_000;
+const pingTimer = setInterval(() => {
+  for (const client of wss.clients) {
+    if (client.readyState === client.OPEN) client.ping();
+  }
+}, PING_INTERVAL);
+wss.on("close", () => clearInterval(pingTimer));
+
 wss.on("connection", (ws, req) => {
   if (PASSWORD) {
     const url = new URL(req.url, `http://${req.headers.host}`);

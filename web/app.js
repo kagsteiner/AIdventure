@@ -30,7 +30,6 @@
   // ── State ─────────────────────────────────────────────
 
   let ws = null;
-  let audioPlayer = null;
   let mediaRecorder = null;
   let recordedChunks = [];
   let isRecording = false;
@@ -289,20 +288,66 @@
     });
   }
 
-  // ── Audio playback ────────────────────────────────────
+  // ── Audio playback (iOS Safari compatible) ────────────
+  //
+  // iOS Safari blocks audio.play() unless triggered by a user gesture.
+  // We reuse ONE Audio element and "unlock" it on the first tap so
+  // all subsequent server-driven playback works.
+
+  const persistentAudio = new Audio();
+  let audioUnlocked = false;
+  let currentBlobUrl = null;
+  let pendingAudio = null;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    // Play + immediately pause to mark this element as user-activated
+    persistentAudio.muted = true;
+    persistentAudio.play().then(() => {
+      persistentAudio.pause();
+      persistentAudio.muted = false;
+      persistentAudio.currentTime = 0;
+      audioUnlocked = true;
+      // If audio arrived before the user tapped, play it now
+      if (pendingAudio) {
+        const b64 = pendingAudio;
+        pendingAudio = null;
+        playAudio(b64);
+      }
+    }).catch(() => {});
+  }
+
+  document.addEventListener("touchstart", unlockAudio, { passive: true });
+  document.addEventListener("click", unlockAudio);
 
   function playAudio(base64) {
     if (!base64) return;
+
+    // If the audio element hasn't been unlocked yet, queue for later
+    if (!audioUnlocked) {
+      pendingAudio = base64;
+      return;
+    }
+
     stopAudio();
-    audioPlayer = new Audio("data:audio/mp3;base64," + base64);
-    audioPlayer.play().catch(() => {});
+
+    // Convert base64 to Blob URL (more reliable than data URIs on iOS)
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "audio/mpeg" });
+    currentBlobUrl = URL.createObjectURL(blob);
+
+    persistentAudio.src = currentBlobUrl;
+    persistentAudio.play().catch(() => {});
   }
 
   function stopAudio() {
-    if (audioPlayer) {
-      audioPlayer.pause();
-      audioPlayer.src = "";
-      audioPlayer = null;
+    persistentAudio.pause();
+    persistentAudio.currentTime = 0;
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = null;
     }
   }
 
