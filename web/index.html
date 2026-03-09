@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>AIdventure</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Password overlay -->
+  <div id="auth-overlay" class="overlay hidden">
+    <div class="overlay-content">
+      <h1>AIdventure</h1>
+      <p>Enter password to connect</p>
+      <input type="password" id="auth-input" placeholder="Password" autocomplete="off">
+      <button id="auth-btn">Enter</button>
+    </div>
+  </div>
+
+  <!-- Connection overlay -->
+  <div id="connect-overlay" class="overlay">
+    <div class="overlay-content">
+      <h1>AIdventure</h1>
+      <p id="connect-status">Connecting...</p>
+      <button id="reconnect-btn" class="hidden">Reconnect</button>
+    </div>
+  </div>
+
+  <!-- Main game UI -->
+  <div id="game" class="hidden">
+
+    <!-- Status bar -->
+    <header id="status-bar"></header>
+
+    <!-- Narrative area -->
+    <main id="narrative-area">
+      <div id="narrative-content"></div>
+    </main>
+
+    <!-- Menu (genre selection) -->
+    <div id="menu-area" class="hidden"></div>
+
+    <!-- Input area -->
+    <footer id="input-area">
+      <div id="thinking-indicator" class="hidden">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+
+      <div id="input-controls">
+        <button id="mic-btn" title="Hold to speak">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </button>
+
+        <input type="text" id="text-input" placeholder="Type your action..." autocomplete="off">
+        <button id="send-btn" title="Send">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

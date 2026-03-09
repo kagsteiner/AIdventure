@@ -44,12 +44,99 @@ On first launch, you select your preferred story type (fantasy, sci-fi, or horro
 
 Each turn, the engine assembles context from these files, sends it to the LLM along with the player's action, and receives a structured JSON response containing narrative text, state changes, optional ASCII art, and suggested choices.
 
+## Audiobook Mode
+
+Play the game as an **interactive audiobook** — the story is narrated aloud, and you speak your actions.
+
+### Setup
+
+1. Ensure you have an `OPENAI_API_KEY` in your `.env` (required for voice, regardless of `LLM_PROVIDER`)
+2. Install [ffmpeg](https://ffmpeg.org) for microphone recording:
+   - **Windows:** `choco install ffmpeg` or `winget install ffmpeg`
+   - **macOS:** `brew install ffmpeg`
+   - **Linux:** `apt install ffmpeg`
+3. Set `UI_MODE=audiobook` in your `.env`
+4. Optionally configure voice and style:
+   - `TTS_VOICE` — choose a narrator voice (`nova`, `onyx`, `fable`, `shimmer`, etc.)
+   - `TTS_STYLE` — custom narration instructions
+
+### How It Works
+
+- The story is spoken aloud using OpenAI TTS (`gpt-4o-mini-tts`)
+- **Press Enter** during narration to skip ahead
+- When prompted, **press Enter** to start speaking, then **Enter** again when done
+- Your speech is transcribed using OpenAI STT (`gpt-4o-mini-transcribe`)
+- Suggested actions are narrated but you can say anything — speak freely!
+- If recording fails, you can type your action as a fallback
+
+### Voice Commands
+
+Say these words to use game commands: `quit`, `inventory`, `status`, `help`.
+
+## Web Mode (Play from Your Phone)
+
+Run AIdventure as a **web server** and play from your iPhone or any browser — with full voice narration and push-to-talk input.
+
+### Quick Start (Local)
+
+```bash
+# In .env, set:
+UI_MODE=web
+
+# Then:
+npm start
+# Open http://localhost:3000 in your browser
+```
+
+### VPS Deployment
+
+1. Clone the repo on your VPS, run `npm install`, configure `.env` with `UI_MODE=web`
+2. Set up **nginx** as a reverse proxy with **Let's Encrypt** SSL (HTTPS is required for microphone access on iOS):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+3. Keep the server running with PM2: `pm2 start server.js`
+4. Set `WEB_PASSWORD` in `.env` to protect access (optional)
+
+### How It Works
+
+- The game engine runs on the server; the browser is a thin client
+- Story narration plays through your phone's speaker (OpenAI TTS)
+- **Hold the mic button** to speak your action, or type in the text field
+- Your speech is transcribed server-side (OpenAI STT)
+- Tap a suggested action card to choose it directly
+- No ffmpeg or SoX needed on your phone — the browser handles audio natively
+
 ## Architecture
 
 ```
-main.js                 Entry point
+main.js                 Entry point (terminal/audiobook modes)
+server.js               Web server (Express + WebSocket)
+web/
+  index.html            Mobile-first web client
+  app.js                Client JavaScript (WebSocket, MediaRecorder)
+  style.css             Dark-themed responsive styles
 engine/
   engine.js             Game loop (display → input → LLM → update)
+  ui/
+    terminal_ui.js      Retro terminal interface (ASCII art + readline)
+    audiobook_ui.js     Audiobook interface (TTS narration + voice input)
+    web_ui.js           Web interface (WebSocket + server-side TTS/STT)
   llm.js                LLM abstraction layer (OpenAI-compatible)
   story_types.js        Genre configurations and writing style prompts
   world_builder.js      Initial world generation
@@ -77,12 +164,18 @@ Your progress is saved automatically. Run `npm start` again to resume.
 
 Edit `.env` to customize:
 
-- `OPENAI_API_KEY` — Your OpenAI API key (required for openai provider)
+- `OPENAI_API_KEY` — Your OpenAI API key (required for openai provider and audiobook mode)
 - `ANTHROPIC_API_KEY` — Your Anthropic API key (required for anthropic provider)
 - `LLM_PROVIDER` — `anthropic` (default) or `openai`. Both models must be from the same provider.
 - `LLM_MODEL` — Model for initial story/world building (default: `claude-opus-4-0-20250514` / `gpt-4o`). A thinking-capable model is recommended for this complex initial task.
 - `LLM_GAMELOOP_MODEL` — Model for the game loop and summarization (optional). Falls back to `LLM_MODEL` if not set. Use a cheaper model here to save cost, e.g. `claude-sonnet-4-6`.
 - `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc. (never tested this)
+- `UI_MODE` — `terminal` (default), `audiobook`, or `web`
+- `WEB_PORT` — Port for web server mode (default: `3000`)
+- `WEB_PASSWORD` — Optional password to protect the web interface
+- `TTS_VOICE` — Voice for audiobook narration (default: `nova`). Options: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse
+- `TTS_STYLE` — Custom narration style instruction for TTS
+- `RECORD_DEVICE` — Microphone device name override for Windows (auto-detected if omitted; run `ffmpeg -list_devices true -f dshow -i dummy` to list devices)
 
 ## Reset
 

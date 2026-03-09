@@ -1,6 +1,7 @@
 node_modules/
 .env
 logs/
+srv706843.hstgr.cloud
 game/world.md
 game/characters.json
 game/state.json

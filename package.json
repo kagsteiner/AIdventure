@@ -6,12 +6,15 @@
   "type": "module",
   "scripts": {
     "start": "node main.js",
+    "web": "UI_MODE=web node main.js",
     "reset": "node -e \"import('fs').then(fs => { ['game/world.md','game/characters.json','game/state.json','game/log.md','game/summary.md','game/story.md'].forEach(f => { try { fs.unlinkSync(f) } catch {} }) })\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "dotenv": "^16.0.0",
+    "express": "^5.2.1",
     "openai": "^4.0.0",
-    "readline": "^1.3.0"
+    "readline": "^1.3.0",
+    "ws": "^8.19.0"
   }
 }
