@@ -85,7 +85,7 @@ UI_MODE=web
 
 # Then:
 npm start
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3006 in your browser (or WEB_PORT if customized)
 ```
 
 ### VPS Deployment
@@ -100,27 +100,31 @@ server {
     ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
 
-    location / {
-        proxy_pass http://127.0.0.1:3000;
+    # AIdventure — use your chosen path and WEB_PORT (default 3006)
+    location /aidventure/ {
+        proxy_pass http://127.0.0.1:3006/;
         proxy_http_version 1.1;
+        proxy_set_header Host $host;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
+        # World generation can take several minutes; avoid 1-min timeout
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
     }
 }
 ```
 
-3. Keep the server running with PM2: `pm2 start server.js`
+3. Keep the server running with PM2: `pm2 start main.js`
 4. Set `WEB_PASSWORD` in `.env` to protect access (optional)
 
 ### How It Works
 
 - The game engine runs on the server; the browser is a thin client
-- Story narration plays through your phone's speaker (OpenAI TTS)
+- Story text is displayed on screen; **tap the "Speak" button** on any scene to hear the AI narrator (OpenAI TTS)
 - **Hold the mic button** to speak your action, or type in the text field
 - Your speech is transcribed server-side (OpenAI STT)
 - Tap a suggested action card to choose it directly
-- No ffmpeg or SoX needed on your phone — the browser handles audio natively
+- No ffmpeg needed on your phone — the browser handles audio natively
 
 ## Architecture
 
@@ -171,7 +175,7 @@ Edit `.env` to customize:
 - `LLM_GAMELOOP_MODEL` — Model for the game loop and summarization (optional). Falls back to `LLM_MODEL` if not set. Use a cheaper model here to save cost, e.g. `claude-sonnet-4-6`.
 - `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc. (never tested this)
 - `UI_MODE` — `terminal` (default), `audiobook`, or `web`
-- `WEB_PORT` — Port for web server mode (default: `3000`)
+- `WEB_PORT` — Port for web server mode (default: `3006`)
 - `WEB_PASSWORD` — Optional password to protect the web interface
 - `TTS_VOICE` — Voice for audiobook narration (default: `nova`). Options: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse
 - `TTS_STYLE` — Custom narration style instruction for TTS

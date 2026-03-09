@@ -127,13 +127,31 @@ function spawnRecorder(filePath) {
     { stdio: ["pipe", "ignore", "pipe"] });
 }
 
+const LANG_ISO = {
+  english: "en", german: "de", french: "fr", spanish: "es",
+  italian: "it", portuguese: "pt", dutch: "nl", polish: "pl",
+  russian: "ru", japanese: "ja", chinese: "zh", korean: "ko",
+  swedish: "sv", norwegian: "no", danish: "da", finnish: "fi",
+};
+
+function langToISO(lang) {
+  return LANG_ISO[lang.toLowerCase()] || null;
+}
+
+function buildTtsStyle() {
+  const base =
+    process.env.TTS_STYLE ||
+    "Speak as a dramatic audiobook narrator. Use a slow, atmospheric pace with expressive intonation. Pause briefly between paragraphs.";
+  const lang = process.env.GAME_LANGUAGE || "English";
+  if (lang.toLowerCase() === "english") return base;
+  return `${base} The text is in ${lang}. Speak with a native ${lang} accent and pronunciation.`;
+}
+
 export class AudiobookUI {
   constructor() {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.voice = process.env.TTS_VOICE || "nova";
-    this.ttsStyle =
-      process.env.TTS_STYLE ||
-      "Speak as a dramatic audiobook narrator. Use a slow, atmospheric pace with expressive intonation. Pause briefly between paragraphs.";
+    this.ttsStyle = buildTtsStyle();
     this.tmpDir = path.join(os.tmpdir(), "aidventure-audio");
     fs.mkdirSync(this.tmpDir, { recursive: true });
 
@@ -285,10 +303,13 @@ export class AudiobookUI {
     console.log(dim("  ⏳  Transcribing..."));
 
     try {
-      const transcription = await this.openai.audio.transcriptions.create({
+      const sttParams = {
         model: "gpt-4o-mini-transcribe",
         file: fs.createReadStream(recordPath),
-      });
+      };
+      const sttLang = langToISO(process.env.GAME_LANGUAGE || "English");
+      if (sttLang) sttParams.language = sttLang;
+      const transcription = await this.openai.audio.transcriptions.create(sttParams);
 
       const text = cleanTranscription(transcription.text || "");
       if (text) {

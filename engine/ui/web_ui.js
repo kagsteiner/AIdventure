@@ -13,15 +13,34 @@ import OpenAI from "openai";
 import { loadState } from "../state_manager.js";
 
 const MAX_TTS_CHARS = 4000;
+const LAST_SCENE_FILE = path.resolve("game", "last_scene.json");
+
+const LANG_ISO = {
+  english: "en", german: "de", french: "fr", spanish: "es",
+  italian: "it", portuguese: "pt", dutch: "nl", polish: "pl",
+  russian: "ru", japanese: "ja", chinese: "zh", korean: "ko",
+  swedish: "sv", norwegian: "no", danish: "da", finnish: "fi",
+};
+
+function langToISO(lang) {
+  return LANG_ISO[lang.toLowerCase()] || null;
+}
+
+function buildTtsStyle() {
+  const base =
+    process.env.TTS_STYLE ||
+    "Speak as a dramatic audiobook narrator. Use a slow, atmospheric pace with expressive intonation. Pause briefly between paragraphs.";
+  const lang = process.env.GAME_LANGUAGE || "English";
+  if (lang.toLowerCase() === "english") return base;
+  return `${base} The text is in ${lang}. Speak with a native ${lang} accent and pronunciation.`;
+}
 
 export class WebUI {
   constructor(ws) {
     this.ws = ws;
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.voice = process.env.TTS_VOICE || "nova";
-    this.ttsStyle =
-      process.env.TTS_STYLE ||
-      "Speak as a dramatic audiobook narrator. Use a slow, atmospheric pace with expressive intonation. Pause briefly between paragraphs.";
+    this.ttsStyle = buildTtsStyle();
     this.tmpDir = path.join(os.tmpdir(), `aidventure-web-${Date.now()}`);
     fs.mkdirSync(this.tmpDir, { recursive: true });
     this._closed = false;
@@ -108,10 +127,13 @@ export class WebUI {
     const tmpFile = path.join(this.tmpDir, `stt-${Date.now()}.m4a`);
     try {
       fs.writeFileSync(tmpFile, Buffer.from(base64Audio, "base64"));
-      const transcription = await this.openai.audio.transcriptions.create({
+      const sttParams = {
         model: "gpt-4o-mini-transcribe",
         file: fs.createReadStream(tmpFile),
-      });
+      };
+      const sttLang = langToISO(process.env.GAME_LANGUAGE || "English");
+      if (sttLang) sttParams.language = sttLang;
+      const transcription = await this.openai.audio.transcriptions.create(sttParams);
       return (transcription.text || "").replace(/[.!?]+$/, "").trim();
     } finally {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -133,7 +155,12 @@ export class WebUI {
       speechText += "\n\n" + choices.map((c, i) => `${i + 1}: ${c}`).join(". ");
     }
     const audio = await this._generateTTS(speechText);
-    this._send({ type: "scene", narrative, asciiArt: asciiArt || null, choices: choices || [], audio });
+    const msg = { type: "scene", narrative, asciiArt: asciiArt || null, choices: choices || [], audio };
+    this._send(msg);
+    // Persist for reconnect replay (audio already generated — no re-cost on reconnect)
+    try {
+      await fs.promises.writeFile(LAST_SCENE_FILE, JSON.stringify(msg));
+    } catch {}
   }
 
   async showStatus() {
@@ -229,6 +256,12 @@ export class WebUI {
   }
 
   async showResuming() {
+    // Replay the last scene immediately (file read is instant; audio was already generated)
+    try {
+      const raw = await fs.promises.readFile(LAST_SCENE_FILE, "utf8");
+      const lastScene = JSON.parse(raw);
+      this._send({ ...lastScene, type: "replay" });
+    } catch {}
     const audio = await this._generateTTS("Welcome back. Let us resume your adventure.");
     this._send({ type: "message", text: "Resuming your adventure...", audio });
   }

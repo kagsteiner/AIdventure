@@ -287,6 +287,27 @@ html, body {
 #thinking-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
 #thinking-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
 
+/* ── Session restore divider ─────────────────────────── */
+
+.session-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0.25rem 0 1rem;
+  opacity: 0.6;
+}
+.session-divider::before,
+.session-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--bg-card);
+}
+
 /* ── Player action echo ──────────────────────────────── */
 
 .player-action {

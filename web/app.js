@@ -109,6 +109,11 @@
         renderScene(msg);
         break;
 
+      case "replay":
+        appendSessionDivider();
+        renderScene(msg);
+        break;
+
       case "status":
         renderStatus(msg.state);
         break;
@@ -283,6 +288,13 @@
     if (playBtn) el.appendChild(playBtn);
     narrativeContent.appendChild(el);
     scrollToBottom();
+  }
+
+  function appendSessionDivider() {
+    const el = document.createElement("div");
+    el.className = "session-divider";
+    el.textContent = "↩ Last session";
+    narrativeContent.appendChild(el);
   }
 
   function appendError(text) {
