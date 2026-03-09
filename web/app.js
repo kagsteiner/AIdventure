@@ -40,8 +40,6 @@
 
   function getWSUrl() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    // Derive base path from the current page so it works behind a reverse proxy
-    // e.g. /aidventure/ when served via nginx, or / when running locally
     let basePath = location.pathname;
     if (!basePath.endsWith("/")) {
       basePath = basePath.substring(0, basePath.lastIndexOf("/") + 1);
@@ -103,13 +101,12 @@
   function handleMessage(msg) {
     switch (msg.type) {
       case "banner":
-        playAudio(msg.audio);
+        appendTextWithAudio("Welcome to AIdventure", msg.audio);
         break;
 
       case "scene":
         hideThinking();
         renderScene(msg);
-        playAudio(msg.audio);
         break;
 
       case "status":
@@ -127,18 +124,15 @@
         break;
 
       case "menu":
-        renderMenu(msg.items);
-        playAudio(msg.audio);
+        renderMenu(msg.items, msg.audio);
         break;
 
       case "message":
-        appendText(msg.text);
-        playAudio(msg.audio);
+        appendTextWithAudio(msg.text, msg.audio);
         break;
 
       case "error":
         appendError(msg.text);
-        playAudio(msg.audio);
         break;
 
       case "transcription":
@@ -146,10 +140,52 @@
         break;
 
       case "quit":
-        appendText(msg.text);
-        playAudio(msg.audio);
+        appendTextWithAudio(msg.text, msg.audio);
         disableInput();
         break;
+    }
+  }
+
+  // ── Audio playback ────────────────────────────────────
+  //
+  // All playback is user-initiated via a "speak" button tap.
+  // This guarantees iOS Safari allows it (direct user gesture).
+
+  let currentAudio = null;
+  let currentBlobUrl = null;
+
+  function makePlayButton(base64) {
+    if (!base64) return null;
+    const btn = document.createElement("button");
+    btn.className = "speak-btn";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg> Speak';
+    btn.addEventListener("click", () => {
+      stopAudio();
+      try {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: "audio/mpeg" });
+        currentBlobUrl = URL.createObjectURL(blob);
+        currentAudio = new Audio(currentBlobUrl);
+        currentAudio.play().catch((err) => {
+          appendError("Audio play failed: " + err.message);
+        });
+      } catch (err) {
+        appendError("Audio decode error: " + err.message);
+      }
+    });
+    return btn;
+  }
+
+  function stopAudio() {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = null;
     }
   }
 
@@ -173,6 +209,9 @@
       p.textContent = para.trim();
       block.appendChild(p);
     }
+
+    const playBtn = makePlayButton(msg.audio);
+    if (playBtn) block.appendChild(playBtn);
 
     if (msg.choices && msg.choices.length > 0) {
       const choices = document.createElement("div");
@@ -206,7 +245,7 @@
     statusBar.innerHTML = parts.map((p) => `<span class="badge">${p}</span>`).join("");
   }
 
-  function renderMenu(items) {
+  function renderMenu(items, audio) {
     menuArea.innerHTML = "";
     menuArea.classList.remove("hidden");
     narrativeArea.classList.add("hidden");
@@ -214,6 +253,9 @@
     const h = document.createElement("h2");
     h.textContent = "Choose Your Adventure";
     menuArea.appendChild(h);
+
+    const playBtn = makePlayButton(audio);
+    if (playBtn) menuArea.appendChild(playBtn);
 
     items.forEach((item, idx) => {
       const card = document.createElement("div");
@@ -228,13 +270,17 @@
     });
   }
 
-  function appendText(text) {
-    if (!text) return;
+  function appendTextWithAudio(text, audio) {
+    if (!text && !audio) return;
     const el = document.createElement("div");
     el.className = "narrative-block";
-    const p = document.createElement("p");
-    p.textContent = text;
-    el.appendChild(p);
+    if (text) {
+      const p = document.createElement("p");
+      p.textContent = text;
+      el.appendChild(p);
+    }
+    const playBtn = makePlayButton(audio);
+    if (playBtn) el.appendChild(playBtn);
     narrativeContent.appendChild(el);
     scrollToBottom();
   }
@@ -286,69 +332,6 @@
     requestAnimationFrame(() => {
       narrativeArea.scrollTop = narrativeArea.scrollHeight;
     });
-  }
-
-  // ── Audio playback (iOS Safari compatible) ────────────
-  //
-  // iOS Safari blocks audio.play() unless triggered by a user gesture.
-  // We reuse ONE Audio element and "unlock" it on the first tap so
-  // all subsequent server-driven playback works.
-
-  const persistentAudio = new Audio();
-  let audioUnlocked = false;
-  let currentBlobUrl = null;
-  let pendingAudio = null;
-
-  function unlockAudio() {
-    if (audioUnlocked) return;
-    // Play + immediately pause to mark this element as user-activated
-    persistentAudio.muted = true;
-    persistentAudio.play().then(() => {
-      persistentAudio.pause();
-      persistentAudio.muted = false;
-      persistentAudio.currentTime = 0;
-      audioUnlocked = true;
-      // If audio arrived before the user tapped, play it now
-      if (pendingAudio) {
-        const b64 = pendingAudio;
-        pendingAudio = null;
-        playAudio(b64);
-      }
-    }).catch(() => {});
-  }
-
-  document.addEventListener("touchstart", unlockAudio, { passive: true });
-  document.addEventListener("click", unlockAudio);
-
-  function playAudio(base64) {
-    if (!base64) return;
-
-    // If the audio element hasn't been unlocked yet, queue for later
-    if (!audioUnlocked) {
-      pendingAudio = base64;
-      return;
-    }
-
-    stopAudio();
-
-    // Convert base64 to Blob URL (more reliable than data URIs on iOS)
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: "audio/mpeg" });
-    currentBlobUrl = URL.createObjectURL(blob);
-
-    persistentAudio.src = currentBlobUrl;
-    persistentAudio.play().catch(() => {});
-  }
-
-  function stopAudio() {
-    persistentAudio.pause();
-    persistentAudio.currentTime = 0;
-    if (currentBlobUrl) {
-      URL.revokeObjectURL(currentBlobUrl);
-      currentBlobUrl = null;
-    }
   }
 
   // ── Sending actions ───────────────────────────────────
@@ -436,7 +419,6 @@
     mediaRecorder.stop();
   }
 
-  // Hold-to-talk: press and hold the mic button
   micBtn.addEventListener("mousedown",  startRecording);
   micBtn.addEventListener("mouseup",    stopRecording);
   micBtn.addEventListener("mouseleave", stopRecording);
