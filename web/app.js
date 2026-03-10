@@ -18,6 +18,7 @@
   const reconnectBtn  = document.getElementById("reconnect-btn");
   const gameEl        = document.getElementById("game");
   const statusBar     = document.getElementById("status-bar");
+  const newStoryBtn   = document.getElementById("new-story-btn");
   const narrativeArea = document.getElementById("narrative-area");
   const narrativeContent = document.getElementById("narrative-content");
   const menuArea      = document.getElementById("menu-area");
@@ -87,6 +88,12 @@
     };
   }
 
+  newStoryBtn.addEventListener("click", () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      sendJSON({ type: "new_story" });
+    }
+  });
+
   reconnectBtn.addEventListener("click", connect);
   authBtn.addEventListener("click", () => {
     password = authInput.value;
@@ -116,6 +123,15 @@
 
       case "status":
         renderStatus(msg.state);
+        newStoryBtn.classList.remove("hidden");
+        break;
+
+      case "newStory":
+        narrativeContent.innerHTML = "";
+        statusBar.innerHTML = "";
+        waitingForInput = false;
+        stopAudio();
+        appendTextWithAudio(msg.text, msg.audio);
         break;
 
       case "thinking":

@@ -32,6 +32,7 @@ const UI_STRINGS = {
     helpFree: "[free text] - Do anything you can describe",
     helpInv: "inventory   - Check your belongings",
     helpStatus: "status      - View full game state",
+    helpNew: "new story   - Wipe save and start fresh",
     helpQuit: "quit        - Save and exit",
     day: "Day",
   },
@@ -54,6 +55,7 @@ const UI_STRINGS = {
     helpFree: "[Freitext]  - Tu alles, was du beschreiben kannst",
     helpInv: "inventory   - Inventar anzeigen",
     helpStatus: "status      - Spielstand anzeigen",
+    helpNew: "new story   - Spielstand löschen und neu beginnen",
     helpQuit: "quit        - Speichern und beenden",
     day: "Tag",
   },
@@ -218,12 +220,17 @@ export class TerminalUI {
     console.log("\n" + JSON.stringify(state, null, 2));
   }
 
+  showNewStory() {
+    console.log("\n  Starting a new adventure...\n");
+  }
+
   showHelp() {
     console.log(`\n  ${this.t.helpTitle}`);
     console.log(`    ${this.t.helpNumber}`);
     console.log(`    ${this.t.helpFree}`);
     console.log(`    ${this.t.helpInv}`);
     console.log(`    ${this.t.helpStatus}`);
+    console.log(`    ${this.t.helpNew}`);
     console.log(`    ${this.t.helpQuit}`);
     console.log();
   }

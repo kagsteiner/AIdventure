@@ -19,6 +19,7 @@ const PATHS = {
   log: path.join(GAME_DIR, "log.md"),
   summary: path.join(GAME_DIR, "summary.md"),
   story: path.join(GAME_DIR, "story.md"),
+  lastScene: path.join(GAME_DIR, "last_scene.json"),
 };
 
 async function ensureGameDir() {
@@ -113,6 +114,16 @@ export async function loadSummary() {
 
 export function worldExists() {
   return existsSync(PATHS.world);
+}
+
+/**
+ * Delete all game files so the engine starts fresh on the next run.
+ * The game/ directory itself is kept to avoid permission issues on re-creation.
+ */
+export async function clearGameState() {
+  for (const filePath of Object.values(PATHS)) {
+    try { await fs.unlink(filePath); } catch {}
+  }
 }
 
 export { PATHS };

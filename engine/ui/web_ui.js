@@ -10,10 +10,10 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import OpenAI from "openai";
-import { loadState } from "../state_manager.js";
+import { loadState, PATHS } from "../state_manager.js";
+import { NEW_STORY_CMD } from "../engine.js";
 
 const MAX_TTS_CHARS = 4000;
-const LAST_SCENE_FILE = path.resolve("game", "last_scene.json");
 
 const LANG_ISO = {
   english: "en", german: "de", french: "fr", spanish: "es",
@@ -44,13 +44,31 @@ export class WebUI {
     this.tmpDir = path.join(os.tmpdir(), `aidventure-web-${Date.now()}`);
     fs.mkdirSync(this.tmpDir, { recursive: true });
     this._closed = false;
-    this._pendingResolve = null;
+
+    // Persistent queue so messages (especially new_story) aren't lost
+    // while the engine is busy processing a turn.
+    this._msgQueue = [];
+    this._msgResolve = null;
+
+    this.ws.on("message", (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (this._msgResolve) {
+          const res = this._msgResolve;
+          this._msgResolve = null;
+          res(msg);
+        } else {
+          this._msgQueue.push(msg);
+        }
+      } catch {}
+    });
 
     this.ws.on("close", () => {
       this._closed = true;
-      if (this._pendingResolve) {
-        this._pendingResolve(null);
-        this._pendingResolve = null;
+      if (this._msgResolve) {
+        const res = this._msgResolve;
+        this._msgResolve = null;
+        res(null);
       }
     });
   }
@@ -67,14 +85,9 @@ export class WebUI {
 
   _waitForMessage() {
     if (this._closed) return Promise.resolve(null);
+    if (this._msgQueue.length > 0) return Promise.resolve(this._msgQueue.shift());
     return new Promise((resolve) => {
-      this._pendingResolve = resolve;
-      const handler = (raw) => {
-        this._pendingResolve = null;
-        try { resolve(JSON.parse(raw.toString())); }
-        catch { resolve(null); }
-      };
-      this.ws.once("message", handler);
+      this._msgResolve = resolve;
     });
   }
 
@@ -159,7 +172,7 @@ export class WebUI {
     this._send(msg);
     // Persist for reconnect replay (audio already generated — no re-cost on reconnect)
     try {
-      await fs.promises.writeFile(LAST_SCENE_FILE, JSON.stringify(msg));
+      await fs.promises.writeFile(PATHS.lastScene, JSON.stringify(msg));
     } catch {}
   }
 
@@ -175,6 +188,8 @@ export class WebUI {
       const msg = await this._waitForMessage();
 
       if (!msg || this._closed) throw new Error("Client disconnected");
+
+      if (msg.type === "new_story") return NEW_STORY_CMD;
 
       if (msg.type === "text") {
         const text = (msg.text || "").trim();
@@ -258,7 +273,7 @@ export class WebUI {
   async showResuming() {
     // Replay the last scene immediately (file read is instant; audio was already generated)
     try {
-      const raw = await fs.promises.readFile(LAST_SCENE_FILE, "utf8");
+      const raw = await fs.promises.readFile(PATHS.lastScene, "utf8");
       const lastScene = JSON.parse(raw);
       this._send({ ...lastScene, type: "replay" });
     } catch {}
@@ -310,11 +325,17 @@ export class WebUI {
     this._send({ type: "message", text: summary, audio });
   }
 
+  async showNewStory() {
+    const audio = await this._generateTTS("Starting a new adventure. Prepare yourself.");
+    this._send({ type: "newStory", text: "Starting a new adventure...", audio });
+  }
+
   async showHelp() {
     const text =
       "You can speak or type any action you want. " +
       "Say 'inventory' to check your belongings, " +
       "'status' to hear your current state, " +
+      "'new story' to begin a fresh adventure, " +
       "or 'quit' to end the adventure.";
     const audio = await this._generateTTS(text);
     this._send({ type: "message", text, audio });

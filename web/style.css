@@ -90,26 +90,60 @@ html, body {
   height: 100dvh;
 }
 
-/* ── Status bar ───────────────────────────────────────── */
+/* ── Top bar (status + new story button) ─────────────── */
 
-#status-bar {
+#top-bar {
   flex-shrink: 0;
-  padding: 0.5rem 1rem;
-  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  display: flex;
+  align-items: center;
   background: var(--bg-surface);
   border-bottom: 1px solid #222;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+#status-bar {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
   font-size: 0.8rem;
   color: var(--text-dim);
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-  min-height: 2rem;
+  align-items: center;
+  min-height: 2.25rem;
 }
-#status-bar:empty { display: none; }
 #status-bar .badge {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+#new-story-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-right: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+#new-story-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+#new-story-btn:active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── Narrative area ───────────────────────────────────── */

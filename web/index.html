@@ -33,8 +33,14 @@
   <!-- Main game UI -->
   <div id="game" class="hidden">
 
-    <!-- Status bar -->
-    <header id="status-bar"></header>
+    <!-- Status bar + New Story button -->
+    <div id="top-bar">
+      <header id="status-bar"></header>
+      <button id="new-story-btn" class="hidden" title="Start a new story">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        New Story
+      </button>
+    </div>
 
     <!-- Narrative area -->
     <main id="narrative-area">
