@@ -75,12 +75,12 @@ function getAnthropicClient() {
 // --- Model resolution ---
 
 const DEFAULT_MODELS = {
-  openai: "gpt-4o",
+  openai: "gpt-5.2",
   anthropic: "claude-opus-4-0-20250514",
 };
 
 const DEFAULT_GAMELOOP_MODELS = {
-  openai: "gpt-4o",
+  openai: "gpt-5.2",
   anthropic: "claude-sonnet-4-20250514",
 };
 
@@ -94,6 +94,16 @@ function resolveModel(gameloop = false) {
     return process.env.LLM_GAMELOOP_MODEL;
   }
   return process.env.LLM_MODEL || (gameloop ? DEFAULT_GAMELOOP_MODELS[p] : DEFAULT_MODELS[p]);
+}
+
+function getDefaultModelForProvider(providerName, gameloop = false) {
+  return gameloop ? DEFAULT_GAMELOOP_MODELS[providerName] : DEFAULT_MODELS[providerName];
+}
+
+function isAnthropicOverloadedError(err) {
+  const status = err?.status ?? err?.statusCode ?? err?.error?.status;
+  const message = String(err?.message || "").toLowerCase();
+  return status === 529 || (message.includes("529") && message.includes("overloaded"));
 }
 
 // --- OpenAI helpers ---
@@ -247,6 +257,7 @@ export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = 
   const p = provider();
   const model = resolveModel(gameloop);
   const fullSystem = applyLangDirective(systemPrompt);
+  const openaiSystem = typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem);
 
   logToFile("request", {
     provider: p,
@@ -257,9 +268,30 @@ export async function queryLLM(systemPrompt, userPrompt, { gameloop = false } = 
     userPrompt,
   });
 
-  const raw = p === "openai"
-    ? await openaiJSON(typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem), userPrompt, model)
-    : await anthropicJSON(fullSystem, userPrompt, model);
+  let raw;
+  if (p === "openai") {
+    raw = await openaiJSON(openaiSystem, userPrompt, model);
+  } else {
+    try {
+      raw = await anthropicJSON(fullSystem, userPrompt, model);
+    } catch (err) {
+      if (!isAnthropicOverloadedError(err)) throw err;
+
+      const fallbackModel = getDefaultModelForProvider("openai", gameloop);
+      logToFile("response", {
+        raw: `[fallback] Anthropic 529 overloaded_error. Retrying once with OpenAI default model: ${fallbackModel}`,
+      });
+      logToFile("request", {
+        provider: "openai",
+        model: fallbackModel,
+        gameloop,
+        caller: "queryLLM:fallback_from_anthropic_529",
+        systemPrompt: systemToLogString(fullSystem),
+        userPrompt,
+      });
+      raw = await openaiJSON(openaiSystem, userPrompt, fallbackModel);
+    }
+  }
 
   logToFile("response", { raw });
 
@@ -283,6 +315,7 @@ export async function queryLLMText(systemPrompt, userPrompt, { gameloop = false 
   const p = provider();
   const model = resolveModel(gameloop);
   const fullSystem = applyLangDirective(systemPrompt);
+  const openaiSystem = typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem);
 
   logToFile("request", {
     provider: p,
@@ -293,9 +326,30 @@ export async function queryLLMText(systemPrompt, userPrompt, { gameloop = false 
     userPrompt,
   });
 
-  const raw = p === "openai"
-    ? await openaiText(typeof fullSystem === "string" ? fullSystem : systemToLogString(fullSystem), userPrompt, model)
-    : await anthropicText(fullSystem, userPrompt, model);
+  let raw;
+  if (p === "openai") {
+    raw = await openaiText(openaiSystem, userPrompt, model);
+  } else {
+    try {
+      raw = await anthropicText(fullSystem, userPrompt, model);
+    } catch (err) {
+      if (!isAnthropicOverloadedError(err)) throw err;
+
+      const fallbackModel = getDefaultModelForProvider("openai", gameloop);
+      logToFile("response", {
+        raw: `[fallback] Anthropic 529 overloaded_error. Retrying once with OpenAI default model: ${fallbackModel}`,
+      });
+      logToFile("request", {
+        provider: "openai",
+        model: fallbackModel,
+        gameloop,
+        caller: "queryLLMText:fallback_from_anthropic_529",
+        systemPrompt: systemToLogString(fullSystem),
+        userPrompt,
+      });
+      raw = await openaiText(openaiSystem, userPrompt, fallbackModel);
+    }
+  }
 
   logToFile("response", { raw });
   return raw;
