@@ -57,7 +57,7 @@ You MUST respond with a JSON object containing these exact keys:
     "genre": "${storyType}"
   },
 
-  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the ${genreInstructions} and their starting situation. Include sensory details. End with a moment of tension or curiosity.)",
+  "opening_narrative": "string (2-3 paragraphs of evocative prose introducing the player to the ${genreInstructions} and their starting situation. End with a moment of tension or curiosity.)",
 
   "ascii_art": "string (simple ASCII art of the starting location, max 8 lines)",
 
