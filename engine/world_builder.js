@@ -22,6 +22,14 @@ function buildSystemPrompt(storyType) {
     ? "the galaxy/universe: its name, major civilizations/species, key technologies, important worlds and space stations (at least 5 distinct locations), major historical events, and current political tensions."
     : "the world: its name, creation myth, magic/power system, geography (at least 5 distinct regions), major historical events, and current political tensions.";
 
+  const openingChoiceGuidance = storyType === "tolkien_fantasy"
+    ? `For opening_narrative and choices:
+- The VERY FIRST part of opening_narrative must briefly name the peoples/races of this world and mention that both men and women are represented among adventurers.
+- Then invite the player to choose who they are from exactly four options.
+- choices MUST contain exactly 4 options, and each option must clearly include both a race and a gender (for example: "Elf woman ranger...", "Dwarf man smith...", etc.).
+- These 4 options are character-identity picks for the player's starting role in this world.`
+    : "choices should contain 3-4 initial choices for the player.";
+
   return `You are a master world-builder for interactive fiction.
 Create an original, richly detailed ${genreInstructions} for a text adventure game.
 
@@ -61,11 +69,12 @@ You MUST respond with a JSON object containing these exact keys:
 
   "ascii_art": "string (simple ASCII art of the starting location, max 8 lines)",
 
-  "choices": ["string (3-4 initial choices for the player)"]
+  "choices": ["string (${storyType === "tolkien_fantasy" ? "exactly 4 Tolkien character-identity options" : "3-4 initial choices for the player"})"]
 }
 
 Generate 6-10 interesting characters across different locations.
 Make the starting quest compelling but not overwhelming.
+${openingChoiceGuidance}
 
 ${config.narrative_style}`;
 }
