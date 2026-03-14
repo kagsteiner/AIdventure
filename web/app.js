@@ -36,6 +36,8 @@
   let isRecording = false;
   let waitingForInput = false;
   let password = "";
+  const readySound = new Audio("sound/sound.mp3");
+  readySound.preload = "auto";
 
   // ── Connection ────────────────────────────────────────
 
@@ -114,6 +116,7 @@
       case "scene":
         hideThinking();
         renderScene(msg);
+        playReadySound();
         break;
 
       case "replay":
@@ -208,6 +211,13 @@
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
     }
+  }
+
+  function playReadySound() {
+    try {
+      readySound.currentTime = 0;
+      readySound.play().catch(() => {});
+    } catch (_) {}
   }
 
   // ── Rendering ─────────────────────────────────────────
