@@ -57,6 +57,10 @@ export class WebUI {
           this._handleTranscriptionRequest(msg).catch(() => {});
           return;
         }
+        if (msg?.type === "synthesizeText" && msg.text) {
+          this._handleSynthesisRequest(msg).catch(() => {});
+          return;
+        }
         if (this._msgResolve) {
           const res = this._msgResolve;
           this._msgResolve = null;
@@ -166,6 +170,19 @@ export class WebUI {
         type: "transcriptionResult",
         requestId: msg.requestId || null,
         error: `Transcription failed: ${err.message}`,
+      });
+    }
+  }
+
+  async _handleSynthesisRequest(msg) {
+    try {
+      const audio = await this._generateTTS(msg.text);
+      this._send({ type: "ttsResult", requestId: msg.requestId || null, audio });
+    } catch (err) {
+      this._send({
+        type: "ttsResult",
+        requestId: msg.requestId || null,
+        error: `Speech generation failed: ${err.message}`,
       });
     }
   }

@@ -50,11 +50,16 @@
   let currentBlobUrl = null;
   let currentRecordingCancel = null;
   let transcriptionCounter = 0;
+  let ttsCounter = 0;
 
   const pendingTranscriptions = new Map();
+  const pendingTts = new Map();
   const readySound = new Audio("sound/sound.mp3");
+  const narrationAudio = new Audio();
 
   readySound.preload = "auto";
+  narrationAudio.preload = "auto";
+  narrationAudio.playsInline = true;
 
   const persistedVoiceState = loadVoiceState();
   const sceneState = {
@@ -235,6 +240,7 @@
 
     ws.onclose = (e) => {
       rejectPendingTranscriptions("Connection lost.");
+      rejectPendingTts("Connection lost.");
       if (e.code === 4001) {
         authOverlay.classList.remove("hidden");
         connectOverlay.classList.add("hidden");
@@ -336,6 +342,10 @@
         resolvePendingTranscription(msg);
         break;
 
+      case "ttsResult":
+        resolvePendingTts(msg);
+        break;
+
       case "quit":
         appendTextWithAudio(msg.text, msg.audio);
         disableInput();
@@ -349,6 +359,7 @@
       currentAudioElement.pause();
       currentAudioElement = null;
     }
+    narrationAudio.pause();
     if (currentBlobUrl) {
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
@@ -366,18 +377,31 @@
       const bytes = base64ToBytes(base64);
       const blob = new Blob([bytes], { type: "audio/mpeg" });
       currentBlobUrl = URL.createObjectURL(blob);
-      currentAudioElement = new Audio(currentBlobUrl);
-      currentAudioElement.preload = "auto";
-      currentAudioElement.playsInline = true;
+      narrationAudio.src = currentBlobUrl;
+      currentAudioElement = narrationAudio;
 
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "playing";
       }
 
       await new Promise((resolve, reject) => {
-        currentAudioElement.onended = () => resolve();
-        currentAudioElement.onerror = () => reject(new Error("Audio playback failed."));
-        currentAudioElement.play().catch(reject);
+        const onEnded = () => {
+          narrationAudio.removeEventListener("ended", onEnded);
+          narrationAudio.removeEventListener("error", onError);
+          resolve();
+        };
+        const onError = () => {
+          narrationAudio.removeEventListener("ended", onEnded);
+          narrationAudio.removeEventListener("error", onError);
+          reject(new Error("Audio playback failed."));
+        };
+        narrationAudio.addEventListener("ended", onEnded);
+        narrationAudio.addEventListener("error", onError);
+        narrationAudio.play().catch((err) => {
+          narrationAudio.removeEventListener("ended", onEnded);
+          narrationAudio.removeEventListener("error", onError);
+          reject(err);
+        });
       });
     } finally {
       if ("mediaSession" in navigator) {
@@ -387,6 +411,8 @@
         URL.revokeObjectURL(currentBlobUrl);
         currentBlobUrl = null;
       }
+      narrationAudio.removeAttribute("src");
+      narrationAudio.load();
       currentAudioElement = null;
     }
   }
@@ -395,6 +421,13 @@
     if (!text) return;
 
     stopAudio();
+    try {
+      const audio = await requestTts(text);
+      if (audio) {
+        await playAudioBase64(audio);
+        return;
+      }
+    } catch {}
 
     if (!window.speechSynthesis) {
       setVoiceStatus(text);
@@ -661,6 +694,44 @@
     }
   }
 
+  function requestTts(text) {
+    return new Promise((resolve, reject) => {
+      const requestId = `tts-${Date.now()}-${++ttsCounter}`;
+      const timeoutId = window.setTimeout(() => {
+        pendingTts.delete(requestId);
+        reject(new Error("Speech generation timed out."));
+      }, 45000);
+
+      pendingTts.set(requestId, {
+        resolve: (msg) => {
+          clearTimeout(timeoutId);
+          if (msg.error) reject(new Error(msg.error));
+          else resolve(msg.audio || null);
+        },
+        reject: (message) => {
+          clearTimeout(timeoutId);
+          reject(new Error(message));
+        },
+      });
+
+      sendJSON({ type: "synthesizeText", text, requestId });
+    });
+  }
+
+  function resolvePendingTts(msg) {
+    const pending = pendingTts.get(msg.requestId);
+    if (!pending) return;
+    pendingTts.delete(msg.requestId);
+    pending.resolve(msg);
+  }
+
+  function rejectPendingTts(message) {
+    for (const [requestId, pending] of pendingTts.entries()) {
+      pending.reject(message);
+      pendingTts.delete(requestId);
+    }
+  }
+
   async function startRecording() {
     if (isRecording) return;
     try {
@@ -793,6 +864,17 @@
     if (!window.MediaRecorder) {
       throw new Error("This browser does not support voice recording.");
     }
+
+    try {
+      narrationAudio.src =
+        "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCA" +
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+      await narrationAudio.play();
+      narrationAudio.pause();
+      narrationAudio.currentTime = 0;
+      narrationAudio.removeAttribute("src");
+      narrationAudio.load();
+    } catch {}
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     stream.getTracks().forEach((track) => track.stop());
