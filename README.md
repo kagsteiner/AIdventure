@@ -6,6 +6,8 @@ This node.js app creates such adventures. It is an experiment to see whether, wi
 
 ## What is it?
 
+First: this is an experiment I did for myself. I do not intend to ever publish it. If you have node.js installed and API Tokens from Anthropic and OpenAI, you should have no trouble getting it to work. I actually do love it and use it a lot. But - see below - it's expensive.
+
 An AI-powered interactive text adventure engine that supports multiple story genres and writing styles. The world, characters, and story are all dynamically generated and evolved by a Large Language Model acting as the Game Master.
 
 Choose from several adventure types:
@@ -243,7 +245,6 @@ Barrens like a barnacle on a hull...
 
 # Warning, expensive!
 
-With Anthropics claude-opus-4-6, you get to spend money fairly fast. Ten steps in my adventure (that is one page of reading, then deciding what to do, maybe 5 to 10 minutes each) costs about 100k input tokens and 10k output tokens, or about a dollar.
+With Anthropics claude-opus-4-6 for world generation and Sonnet 4.6 for gameplay, you get to spend money fairly fast. An hour in my adventure (that is one page of reading, then deciding what to do, maybe 5 to 10 minutes each) costs about 100k input tokens and 10k output tokens, or about a dollar.
 
 I found it worth it.
-
