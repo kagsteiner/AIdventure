@@ -119,12 +119,12 @@ html, body {
   gap: 0.3rem;
 }
 
+#voice-mode-btn,
 #new-story-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  margin-right: 0.75rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid #333;
   border-radius: 8px;
@@ -136,14 +136,120 @@ html, body {
   white-space: nowrap;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
+#voice-mode-btn {
+  margin-right: 0.5rem;
+}
+#new-story-btn {
+  margin-right: 0.75rem;
+}
+#voice-mode-btn:hover,
 #new-story-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
+#voice-mode-btn:active,
 #new-story-btn:active {
   background: var(--accent-glow);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ── Voice mode ────────────────────────────────────────── */
+
+#voice-mode-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.voice-mode-open #voice-mode-screen {
+  display: flex;
+}
+.voice-mode-open #narrative-area,
+.voice-mode-open #menu-area,
+.voice-mode-open #input-area {
+  display: none;
+}
+
+.voice-mode-card {
+  width: min(100%, 560px);
+  padding: 2rem 1.5rem;
+  border: 1px solid #2a2a40;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(28, 28, 46, 0.96), rgba(20, 20, 31, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.voice-mode-kicker {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  margin-bottom: 0.75rem;
+}
+
+#voice-mode-title {
+  font-size: clamp(1.8rem, 7vw, 2.4rem);
+  line-height: 1.1;
+  margin-bottom: 0.75rem;
+}
+
+#voice-mode-description {
+  color: var(--text-dim);
+  max-width: 28rem;
+  margin: 0 auto 1.25rem;
+}
+
+#voice-mode-action-btn {
+  width: 100%;
+  min-height: 180px;
+  border: none;
+  border-radius: 24px;
+  background: radial-gradient(circle at top, #b89cff 0%, #9b7dff 42%, #6a47db 100%);
+  color: #fff;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 16px 36px rgba(155, 125, 255, 0.32);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+#voice-mode-action-btn:active {
+  transform: scale(0.985);
+  box-shadow: 0 10px 22px rgba(155, 125, 255, 0.22);
+}
+
+#voice-mode-action-btn[disabled] {
+  cursor: default;
+  opacity: 0.72;
+}
+
+#voice-mode-status {
+  margin-top: 1rem;
+  min-height: 1.6rem;
+  color: var(--text);
+}
+
+#voice-mode-transcript {
+  margin-top: 0.5rem;
+  color: var(--text-dim);
+  font-style: italic;
+  min-height: 1.4rem;
+}
+
+.voice-mode-secondary {
+  margin-top: 1rem;
+  border: 1px solid #3a3953;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
 }
 
 /* ── Narrative area ───────────────────────────────────── */

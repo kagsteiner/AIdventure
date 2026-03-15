@@ -53,6 +53,10 @@ export class WebUI {
     this.ws.on("message", (raw) => {
       try {
         const msg = JSON.parse(raw.toString());
+        if (msg?.type === "transcribeAudio" && msg.data) {
+          this._handleTranscriptionRequest(msg).catch(() => {});
+          return;
+        }
         if (this._msgResolve) {
           const res = this._msgResolve;
           this._msgResolve = null;
@@ -150,6 +154,19 @@ export class WebUI {
       return (transcription.text || "").replace(/[.!?]+$/, "").trim();
     } finally {
       try { fs.unlinkSync(tmpFile); } catch {}
+    }
+  }
+
+  async _handleTranscriptionRequest(msg) {
+    try {
+      const text = await this._transcribe(msg.data);
+      this._send({ type: "transcriptionResult", requestId: msg.requestId || null, text });
+    } catch (err) {
+      this._send({
+        type: "transcriptionResult",
+        requestId: msg.requestId || null,
+        error: `Transcription failed: ${err.message}`,
+      });
     }
   }
 
