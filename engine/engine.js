@@ -5,7 +5,15 @@
  * All I/O is delegated to a UI adapter (terminal, audiobook, etc.).
  */
 
-import { worldExists, applyStateChanges, appendLog, appendStory, loadState, clearGameState } from "./state_manager.js";
+import {
+  worldExists,
+  applyStateChanges,
+  appendLog,
+  appendStory,
+  loadState,
+  loadLastTurn,
+  clearGameState,
+} from "./state_manager.js";
 import { buildWorld } from "./world_builder.js";
 import { processTurn } from "./game_master.js";
 import { getStoryTypeMenu } from "./story_types.js";
@@ -61,6 +69,8 @@ export async function runGame(ui) {
     } else {
       await ui.showResuming();
       await ui.showStatus();
+      const lastTurn = await loadLastTurn();
+      currentChoices = Array.isArray(lastTurn?.choices) ? lastTurn.choices : [];
       await ui.showResumeHint();
     }
 

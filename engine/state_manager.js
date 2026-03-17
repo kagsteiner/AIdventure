@@ -20,6 +20,8 @@ const PATHS = {
   summary: path.join(GAME_DIR, "summary.md"),
   story: path.join(GAME_DIR, "story.md"),
   lastScene: path.join(GAME_DIR, "last_scene.json"),
+  lastTurn: path.join(GAME_DIR, "last_turn.json"),
+  ttsCacheDir: path.join(GAME_DIR, "tts_cache"),
 };
 
 async function ensureGameDir() {
@@ -108,6 +110,23 @@ export async function saveSummary(markdown) {
 export async function loadSummary() {
   if (!existsSync(PATHS.summary)) return "";
   return fs.readFile(PATHS.summary, "utf-8");
+}
+
+// --- Last replayable turn ---
+
+export async function saveLastTurn(turn) {
+  await ensureGameDir();
+  await fs.writeFile(PATHS.lastTurn, JSON.stringify(turn, null, 2), "utf-8");
+}
+
+export async function loadLastTurn() {
+  if (existsSync(PATHS.lastTurn)) {
+    const raw = await fs.readFile(PATHS.lastTurn, "utf-8");
+    return JSON.parse(raw);
+  }
+  if (!existsSync(PATHS.lastScene)) return null;
+  const raw = await fs.readFile(PATHS.lastScene, "utf-8");
+  return JSON.parse(raw);
 }
 
 // --- Helpers ---

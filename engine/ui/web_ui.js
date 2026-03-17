@@ -9,8 +9,9 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import crypto from "crypto";
 import OpenAI from "openai";
-import { loadState, PATHS } from "../state_manager.js";
+import { loadState, PATHS, loadLastTurn, saveLastTurn } from "../state_manager.js";
 import { NEW_STORY_CMD } from "../engine.js";
 
 const MAX_TTS_CHARS = 4000;
@@ -35,6 +36,10 @@ function buildTtsStyle() {
   return `${base} The text is in ${lang}. Speak with a native ${lang} accent and pronunciation.`;
 }
 
+function makeTurnId() {
+  return `turn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export class WebUI {
   constructor(ws) {
     this.ws = ws;
@@ -43,6 +48,7 @@ export class WebUI {
     this.ttsStyle = buildTtsStyle();
     this.tmpDir = path.join(os.tmpdir(), `aidventure-web-${Date.now()}`);
     fs.mkdirSync(this.tmpDir, { recursive: true });
+    fs.mkdirSync(PATHS.ttsCacheDir, { recursive: true });
     this._closed = false;
 
     // Persistent queue so messages (especially new_story) aren't lost
@@ -106,6 +112,22 @@ export class WebUI {
   async _generateTTS(text) {
     if (!text || !text.trim()) return null;
 
+    const cacheKey = crypto
+      .createHash("sha1")
+      .update(JSON.stringify({
+        voice: this.voice,
+        style: this.ttsStyle,
+        text,
+      }))
+      .digest("hex");
+    const cachePath = path.join(PATHS.ttsCacheDir, `${cacheKey}.mp3`);
+
+    try {
+      if (fs.existsSync(cachePath)) {
+        return fs.readFileSync(cachePath).toString("base64");
+      }
+    } catch {}
+
     const chunks = this._splitForTTS(text);
     const buffers = [];
     for (const chunk of chunks) {
@@ -120,6 +142,9 @@ export class WebUI {
     }
 
     const combined = Buffer.concat(buffers);
+    try {
+      fs.writeFileSync(cachePath, combined);
+    } catch {}
     return combined.toString("base64");
   }
 
@@ -202,11 +227,27 @@ export class WebUI {
       speechText += "\n\n" + choices.map((c, i) => `${i + 1}: ${c}`).join(". ");
     }
     const audio = await this._generateTTS(speechText);
-    const msg = { type: "scene", narrative, asciiArt: asciiArt || null, choices: choices || [], audio };
+    const msg = {
+      type: "scene",
+      turnId: makeTurnId(),
+      narrative,
+      asciiArt: asciiArt || null,
+      choices: choices || [],
+      audio,
+    };
     this._send(msg);
     // Persist for reconnect replay (audio already generated — no re-cost on reconnect)
     try {
       await fs.promises.writeFile(PATHS.lastScene, JSON.stringify(msg));
+    } catch {}
+    try {
+      await saveLastTurn({
+        turnId: msg.turnId,
+        narrative: msg.narrative,
+        asciiArt: msg.asciiArt,
+        choices: msg.choices,
+        audio: msg.audio,
+      });
     } catch {}
   }
 
@@ -307,12 +348,10 @@ export class WebUI {
   async showResuming() {
     // Replay the last scene immediately (file read is instant; audio was already generated)
     try {
-      const raw = await fs.promises.readFile(PATHS.lastScene, "utf8");
-      const lastScene = JSON.parse(raw);
-      this._send({ ...lastScene, type: "replay" });
+      const lastTurn = await loadLastTurn();
+      if (lastTurn) this._send({ ...lastTurn, type: "replay" });
     } catch {}
-    const audio = await this._generateTTS("Welcome back. Let us resume your adventure.");
-    this._send({ type: "message", text: "Resuming your adventure...", audio });
+    this._send({ type: "message", text: "Resuming your adventure..." });
   }
 
   async showResumeHint() {

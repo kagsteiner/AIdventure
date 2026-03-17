@@ -35,10 +35,34 @@
   const sendBtn = document.getElementById("send-btn");
 
   const VOICE_STORAGE_KEY = "aidventure.voice-mode";
+  const VOICE_SCENE_CACHE_KEY = "aidventure.voice-scene-cache";
+  const VOICE_TTS_CACHE_KEY = "aidventure.voice-tts-cache";
   const MAX_RECORDING_MS = 15000;
   const SILENCE_DURATION_MS = 1300;
   const SILENCE_THRESHOLD = 0.035;
   const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  const CONNECTION_STATES = {
+    DISCONNECTED: "disconnected",
+    CONNECTING: "connecting",
+    CONNECTED: "connected",
+  };
+  const VOICE_STATES = {
+    IDLE: "idle",
+    INTERRUPTED: "interrupted",
+    READY: "ready",
+    NARRATING_SCENE: "narratingScene",
+    AWAITING_INPUT: "awaitingInput",
+    LISTENING_ACTION: "listeningAction",
+    TRANSCRIBING_ACTION: "transcribingAction",
+    CONFIRMING_ACTION: "confirmingAction",
+    SENDING_ACTION: "sendingAction",
+    WAITING_STORY: "waitingStory",
+  };
+  const RESUME_POLICIES = {
+    REPLAY_SCENE: "replay_scene",
+    REPLAY_CHOICES: "replay_choices",
+    WAIT_FOR_NEXT_SCENE: "wait_for_next_scene",
+  };
 
   let ws = null;
   let mediaRecorder = null;
@@ -62,10 +86,14 @@
   narrationAudio.playsInline = true;
 
   const persistedVoiceState = loadVoiceState();
+  const persistedSceneCache = loadSceneCache();
+  let persistedTtsCache = loadTtsCache();
   const sceneState = {
-    message: null,
-    key: null,
-    isReplay: false,
+    message: persistedSceneCache?.message || null,
+    key: persistedSceneCache?.sceneKey || null,
+    turnId: persistedSceneCache?.turnId || null,
+    isReplay: Boolean(persistedSceneCache?.isReplay),
+    source: persistedSceneCache?.message ? "cache" : "none",
   };
 
   const voiceMode = {
@@ -73,14 +101,27 @@
     armed: Boolean(persistedVoiceState.armed),
     started: false,
     needsRestart: Boolean(persistedVoiceState.needsRestart),
-    resumeMode: persistedVoiceState.resumeMode || null,
-    resumeSceneKey: persistedVoiceState.sceneKey || null,
-    currentSceneKey: persistedVoiceState.sceneKey || null,
-    phase: "idle",
+    connectionState: persistedVoiceState.connectionState || CONNECTION_STATES.DISCONNECTED,
+    state: persistedVoiceState.state || (persistedVoiceState.needsRestart ? VOICE_STATES.INTERRUPTED : VOICE_STATES.IDLE),
+    resumePolicy: persistedVoiceState.resumePolicy || migrateResumePolicy(persistedVoiceState.resumeMode),
+    turnId: persistedVoiceState.turnId || null,
+    sceneKey: persistedVoiceState.sceneKey || null,
+    playbackKind: persistedVoiceState.playbackKind || "none",
+    playbackCompleted: Boolean(persistedVoiceState.playbackCompleted),
+    awaitingInput: Boolean(persistedVoiceState.awaitingInput),
+    actionCommitted: Boolean(persistedVoiceState.actionCommitted),
+    pendingChoices: Array.isArray(persistedVoiceState.pendingChoices) ? persistedVoiceState.pendingChoices : [],
+    lastTranscript: persistedVoiceState.lastTranscript || "",
     flowId: 0,
     queue: Promise.resolve(),
     promptSceneKey: null,
   };
+
+  function migrateResumePolicy(legacyMode) {
+    if (legacyMode === "choices_only") return RESUME_POLICIES.REPLAY_CHOICES;
+    if (legacyMode === "full_scene") return RESUME_POLICIES.REPLAY_SCENE;
+    return RESUME_POLICIES.REPLAY_SCENE;
+  }
 
   function loadVoiceState() {
     try {
@@ -96,14 +137,81 @@
     const payload = {
       armed: voiceMode.armed,
       needsRestart: voiceMode.needsRestart,
-      resumeMode: voiceMode.resumeMode,
-      sceneKey: voiceMode.resumeSceneKey || voiceMode.currentSceneKey || null,
+      connectionState: voiceMode.connectionState,
+      state: voiceMode.state,
+      resumePolicy: voiceMode.resumePolicy,
+      turnId: voiceMode.turnId,
+      sceneKey: voiceMode.sceneKey,
+      playbackKind: voiceMode.playbackKind,
+      playbackCompleted: voiceMode.playbackCompleted,
+      awaitingInput: voiceMode.awaitingInput,
+      actionCommitted: voiceMode.actionCommitted,
+      pendingChoices: voiceMode.pendingChoices,
+      lastTranscript: voiceMode.lastTranscript,
     };
     localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(payload));
   }
 
   function clearVoiceState() {
     localStorage.removeItem(VOICE_STORAGE_KEY);
+  }
+
+  function loadSceneCache() {
+    try {
+      const raw = localStorage.getItem(VOICE_SCENE_CACHE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function saveSceneCache(msg, isReplay) {
+    if (!msg) return;
+    const payload = {
+      turnId: msg.turnId || null,
+      sceneKey: getSceneKey(msg),
+      isReplay: Boolean(isReplay),
+      message: {
+        type: msg.type || "scene",
+        turnId: msg.turnId || null,
+        narrative: msg.narrative || "",
+        asciiArt: msg.asciiArt || null,
+        choices: Array.isArray(msg.choices) ? msg.choices : [],
+        audio: msg.audio || null,
+      },
+    };
+    localStorage.setItem(VOICE_SCENE_CACHE_KEY, JSON.stringify(payload));
+  }
+
+  function clearSceneCache() {
+    localStorage.removeItem(VOICE_SCENE_CACHE_KEY);
+  }
+
+  function loadTtsCache() {
+    try {
+      const raw = localStorage.getItem(VOICE_TTS_CACHE_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function getCachedTts(text) {
+    const key = hashString(`tts:${text}`);
+    return persistedTtsCache[key]?.audio || null;
+  }
+
+  function saveCachedTts(text, audio) {
+    if (!text || !audio) return;
+    const key = hashString(`tts:${text}`);
+    persistedTtsCache[key] = { audio, updatedAt: Date.now() };
+    const entries = Object.entries(persistedTtsCache)
+      .sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0))
+      .slice(0, 20);
+    persistedTtsCache = Object.fromEntries(entries);
+    localStorage.setItem(VOICE_TTS_CACHE_KEY, JSON.stringify(persistedTtsCache));
   }
 
   function getWSUrl() {
@@ -179,32 +287,57 @@
   function setVoiceStatus(text, transcript) {
     voiceModeStatus.textContent = text || "";
     if (transcript) {
+      voiceMode.lastTranscript = transcript;
       voiceModeTranscript.textContent = transcript;
       voiceModeTranscript.classList.remove("hidden");
     } else {
+      voiceMode.lastTranscript = "";
       voiceModeTranscript.textContent = "";
       voiceModeTranscript.classList.add("hidden");
     }
+    saveVoiceState();
     syncVoiceModeUI();
   }
 
   function getVoiceActionLabel() {
     if (voiceMode.needsRestart) return "Restart Voice Mode";
     if (!voiceMode.started) return "Start Voice Mode";
-    switch (voiceMode.phase) {
-      case "starting":
-        return "Preparing...";
-      case "narrating":
+    switch (voiceMode.state) {
+      case VOICE_STATES.NARRATING_SCENE:
         return "Narrating...";
-      case "listening":
+      case VOICE_STATES.LISTENING_ACTION:
         return "Listening...";
-      case "confirming":
+      case VOICE_STATES.TRANSCRIBING_ACTION:
+        return "Transcribing...";
+      case VOICE_STATES.CONFIRMING_ACTION:
         return "Confirming...";
-      case "waiting_server":
+      case VOICE_STATES.SENDING_ACTION:
+        return "Sending Action...";
+      case VOICE_STATES.WAITING_STORY:
         return "Waiting For Story...";
       default:
         return "Voice Mode Running";
     }
+  }
+
+  function setConnectionState(state) {
+    voiceMode.connectionState = state;
+    saveVoiceState();
+  }
+
+  function setVoiceState(state, options) {
+    const next = options || {};
+    voiceMode.state = state;
+    if ("turnId" in next) voiceMode.turnId = next.turnId;
+    if ("sceneKey" in next) voiceMode.sceneKey = next.sceneKey;
+    if ("resumePolicy" in next) voiceMode.resumePolicy = next.resumePolicy;
+    if ("playbackKind" in next) voiceMode.playbackKind = next.playbackKind;
+    if ("playbackCompleted" in next) voiceMode.playbackCompleted = next.playbackCompleted;
+    if ("awaitingInput" in next) voiceMode.awaitingInput = next.awaitingInput;
+    if ("actionCommitted" in next) voiceMode.actionCommitted = next.actionCommitted;
+    if ("pendingChoices" in next) voiceMode.pendingChoices = next.pendingChoices;
+    saveVoiceState();
+    syncVoiceModeUI();
   }
 
   function syncVoiceModeUI() {
@@ -222,6 +355,7 @@
   }
 
   function connect() {
+    setConnectionState(CONNECTION_STATES.CONNECTING);
     connectOverlay.classList.remove("hidden");
     reconnectBtn.classList.add("hidden");
     connectStatus.textContent = "Connecting...";
@@ -230,15 +364,28 @@
     ws = new WebSocket(getWSUrl());
 
     ws.onopen = () => {
+      setConnectionState(CONNECTION_STATES.CONNECTED);
       connectOverlay.classList.add("hidden");
       authOverlay.classList.add("hidden");
       gameEl.classList.remove("hidden");
       narrativeContent.innerHTML = "";
       statusBar.innerHTML = "";
+      waitingForInput = false;
+      if (!(voiceMode.needsRestart && sceneState.message)) {
+        sceneState.message = null;
+        sceneState.key = null;
+        sceneState.turnId = null;
+        sceneState.isReplay = false;
+        sceneState.source = "none";
+      }
+      if (!voiceMode.started) {
+        setVoiceState(voiceMode.needsRestart ? VOICE_STATES.INTERRUPTED : VOICE_STATES.IDLE);
+      }
       syncVoiceModeUI();
     };
 
     ws.onclose = (e) => {
+      setConnectionState(CONNECTION_STATES.DISCONNECTED);
       rejectPendingTranscriptions("Connection lost.");
       rejectPendingTts("Connection lost.");
       if (e.code === 4001) {
@@ -279,6 +426,14 @@
         break;
 
       case "replay":
+        if (
+          sceneState.source === "cache" &&
+          msg.turnId &&
+          sceneState.turnId === msg.turnId
+        ) {
+          setSceneState(msg, true);
+          break;
+        }
         appendSessionDivider();
         renderScene(msg);
         setSceneState(msg, true);
@@ -295,6 +450,14 @@
         statusBar.innerHTML = "";
         waitingForInput = false;
         stopAudio();
+        setVoiceState(VOICE_STATES.IDLE, {
+          awaitingInput: false,
+          actionCommitted: false,
+          playbackKind: "none",
+          playbackCompleted: true,
+          pendingChoices: [],
+        });
+        clearSceneCache();
         appendTextWithAudio(msg.text, msg.audio);
         if (voiceMode.started && msg.audio) queueVoiceAudio(msg.audio, "Starting a new story.");
         break;
@@ -302,7 +465,10 @@
       case "thinking":
         showThinking();
         if (voiceMode.started) {
-          voiceMode.phase = "waiting_server";
+          setVoiceState(VOICE_STATES.WAITING_STORY, {
+            awaitingInput: false,
+            resumePolicy: RESUME_POLICIES.WAIT_FOR_NEXT_SCENE,
+          });
           setVoiceStatus("The story is advancing...");
         }
         break;
@@ -310,7 +476,22 @@
       case "inputRequest":
         waitingForInput = true;
         hideThinking();
+        setVoiceState(VOICE_STATES.AWAITING_INPUT, {
+          turnId: sceneState.turnId,
+          sceneKey: sceneState.key,
+          awaitingInput: true,
+          actionCommitted: false,
+          pendingChoices: sceneState.message?.choices || [],
+          resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+        });
         if (voiceMode.started) {
+          if (voiceMode.actionCommitted && sceneState.isReplay && voiceMode.turnId === sceneState.turnId) {
+            setVoiceState(VOICE_STATES.AWAITING_INPUT, {
+              awaitingInput: true,
+              actionCommitted: false,
+              resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+            });
+          }
           enqueueVoiceStep(() => runVoiceInputCycle());
         } else {
           enableInput();
@@ -349,6 +530,13 @@
       case "quit":
         appendTextWithAudio(msg.text, msg.audio);
         disableInput();
+        setVoiceState(VOICE_STATES.IDLE, {
+          awaitingInput: false,
+          actionCommitted: false,
+          playbackKind: "none",
+          playbackCompleted: true,
+          pendingChoices: [],
+        });
         if (voiceMode.started && msg.audio) queueVoiceAudio(msg.audio, "Story paused.");
         break;
     }
@@ -621,8 +809,15 @@
   function setSceneState(msg, isReplay) {
     sceneState.message = msg;
     sceneState.key = getSceneKey(msg);
+    sceneState.turnId = msg?.turnId || sceneState.key;
     sceneState.isReplay = isReplay;
-    voiceMode.currentSceneKey = sceneState.key;
+    sceneState.source = "live";
+    saveSceneCache(msg, isReplay);
+    setVoiceState(voiceMode.state, {
+      turnId: sceneState.turnId,
+      sceneKey: sceneState.key,
+      pendingChoices: Array.isArray(msg?.choices) ? msg.choices : [],
+    });
   }
 
   function sendJSON(obj) {
@@ -636,14 +831,25 @@
     if (!trimmed || !waitingForInput) return;
     waitingForInput = false;
     stopAudio();
+    setVoiceState(VOICE_STATES.SENDING_ACTION, {
+      awaitingInput: false,
+      actionCommitted: true,
+      playbackKind: "none",
+      playbackCompleted: true,
+      resumePolicy: RESUME_POLICIES.WAIT_FOR_NEXT_SCENE,
+    });
     appendPlayerAction(trimmed);
     sendJSON({ type: "text", text: trimmed });
     textInput.value = "";
     disableInput();
 
     if (voiceMode.started) {
-      voiceMode.phase = "waiting_server";
       voiceMode.promptSceneKey = sceneState.key;
+      setVoiceState(VOICE_STATES.WAITING_STORY, {
+        awaitingInput: false,
+        actionCommitted: true,
+        resumePolicy: RESUME_POLICIES.WAIT_FOR_NEXT_SCENE,
+      });
       setVoiceStatus("Waiting for the story to continue.", `You said: "${trimmed}"`);
     }
   }
@@ -695,6 +901,9 @@
   }
 
   function requestTts(text) {
+    const cachedAudio = getCachedTts(text);
+    if (cachedAudio) return Promise.resolve(cachedAudio);
+
     return new Promise((resolve, reject) => {
       const requestId = `tts-${Date.now()}-${++ttsCounter}`;
       const timeoutId = window.setTimeout(() => {
@@ -706,7 +915,10 @@
         resolve: (msg) => {
           clearTimeout(timeoutId);
           if (msg.error) reject(new Error(msg.error));
-          else resolve(msg.audio || null);
+          else {
+            if (msg.audio) saveCachedTts(text, msg.audio);
+            resolve(msg.audio || null);
+          }
         },
         reject: (message) => {
           clearTimeout(timeoutId);
@@ -788,11 +1000,23 @@
 
   function queueVoiceAudio(base64, statusText) {
     enqueueVoiceStep(async () => {
-      voiceMode.phase = "narrating";
+      setVoiceState(VOICE_STATES.NARRATING_SCENE, {
+        turnId: sceneState.turnId,
+        sceneKey: sceneState.key,
+        playbackKind: "scene",
+        playbackCompleted: false,
+        awaitingInput: false,
+        actionCommitted: false,
+      });
       setVoiceStatus(statusText || "Speaking...");
       await playAudioBase64(base64);
-      if (voiceMode.phase === "narrating") {
-        voiceMode.phase = waitingForInput ? "idle" : "waiting_server";
+      if (voiceMode.state === VOICE_STATES.NARRATING_SCENE) {
+        setVoiceState(waitingForInput ? VOICE_STATES.AWAITING_INPUT : VOICE_STATES.READY, {
+          playbackKind: "scene",
+          playbackCompleted: true,
+          awaitingInput: waitingForInput,
+          resumePolicy: waitingForInput ? RESUME_POLICIES.REPLAY_CHOICES : RESUME_POLICIES.REPLAY_CHOICES,
+        });
         setVoiceStatus(waitingForInput ? "Ready for your next action." : "Waiting for the story.");
       }
     });
@@ -800,7 +1024,10 @@
 
   function getResumeNarrationMode(sceneKey, isReplay) {
     if (!isReplay) return "full_scene";
-    if (voiceMode.resumeMode === "choices_only" && voiceMode.resumeSceneKey === sceneKey) {
+    if (
+      voiceMode.resumePolicy === RESUME_POLICIES.REPLAY_CHOICES &&
+      voiceMode.sceneKey === sceneKey
+    ) {
       return "choices_only";
     }
     return "full_scene";
@@ -820,8 +1047,7 @@
   }
 
   function clearResumeHint() {
-    voiceMode.resumeMode = null;
-    voiceMode.resumeSceneKey = null;
+    voiceMode.needsRestart = false;
     saveVoiceState();
   }
 
@@ -832,16 +1058,52 @@
     resetVoiceFlow();
 
     enqueueVoiceStep(async () => {
+      if (
+        isReplay &&
+        voiceMode.resumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE &&
+        voiceMode.actionCommitted &&
+        voiceMode.turnId === sceneState.turnId
+      ) {
+        setVoiceState(VOICE_STATES.WAITING_STORY, {
+          awaitingInput: false,
+          actionCommitted: true,
+          playbackKind: "none",
+          playbackCompleted: true,
+          resumePolicy: RESUME_POLICIES.WAIT_FOR_NEXT_SCENE,
+        });
+        setVoiceStatus("Waiting for the next story update.");
+        return;
+      }
+
       const narrationMode = getResumeNarrationMode(sceneState.key, isReplay);
-      voiceMode.phase = "narrating";
 
       if (narrationMode === "choices_only") {
+        setVoiceState(VOICE_STATES.NARRATING_SCENE, {
+          playbackKind: "choice_prompt",
+          playbackCompleted: false,
+          awaitingInput: true,
+          resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+        });
         setVoiceStatus("Restarted. Retelling the choices.");
         await speakPrompt(buildChoicePrompt(msg.choices));
       } else if (msg.audio) {
+        setVoiceState(VOICE_STATES.NARRATING_SCENE, {
+          playbackKind: "scene",
+          playbackCompleted: false,
+          awaitingInput: false,
+          actionCommitted: false,
+          resumePolicy: RESUME_POLICIES.REPLAY_SCENE,
+        });
         setVoiceStatus("Narrating the current scene.");
         await playAudioBase64(msg.audio);
       } else {
+        setVoiceState(VOICE_STATES.NARRATING_SCENE, {
+          playbackKind: "scene",
+          playbackCompleted: false,
+          awaitingInput: false,
+          actionCommitted: false,
+          resumePolicy: RESUME_POLICIES.REPLAY_SCENE,
+        });
         setVoiceStatus("Narrating the current scene.");
         await speakPrompt(buildNarrationFallback(msg));
       }
@@ -849,9 +1111,20 @@
       clearResumeHint();
 
       if (waitingForInput) {
+        setVoiceState(VOICE_STATES.AWAITING_INPUT, {
+          playbackCompleted: true,
+          awaitingInput: true,
+          pendingChoices: msg.choices || [],
+          resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+        });
         await runVoiceInputCycle();
       } else {
-        voiceMode.phase = "waiting_server";
+        setVoiceState(VOICE_STATES.READY, {
+          playbackCompleted: true,
+          awaitingInput: false,
+          pendingChoices: msg.choices || [],
+          resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+        });
         setVoiceStatus("Waiting for the story to continue.");
       }
     });
@@ -882,17 +1155,17 @@
 
   async function startVoiceMode() {
     voiceMode.open = true;
-    voiceMode.phase = "starting";
+    setVoiceState(VOICE_STATES.READY);
     setVoiceStatus("Requesting microphone and audio access...");
 
     try {
       await primeVoiceMode();
     } catch (err) {
-      voiceMode.phase = "idle";
       voiceMode.started = false;
       voiceMode.needsRestart = false;
       voiceMode.armed = false;
       clearVoiceState();
+      setVoiceState(VOICE_STATES.IDLE);
       setVoiceStatus(err.message || "Could not start voice mode.");
       appendError(err.message || "Could not start voice mode.");
       return;
@@ -905,12 +1178,20 @@
     syncVoiceModeUI();
 
     if (sceneState.message) {
-      startVoiceSceneFlow(sceneState.message, sceneState.isReplay || Boolean(voiceMode.resumeMode));
+      startVoiceSceneFlow(sceneState.message, sceneState.isReplay || voiceMode.resumePolicy !== RESUME_POLICIES.REPLAY_SCENE);
       return;
     }
 
-    voiceMode.phase = "waiting_server";
-    setVoiceStatus("Voice mode is ready. It will begin when a scene arrives.");
+    if (voiceMode.resumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE && voiceMode.turnId) {
+      setVoiceState(VOICE_STATES.WAITING_STORY, {
+        awaitingInput: false,
+        actionCommitted: true,
+      });
+      setVoiceStatus("Voice mode is ready. Waiting for the next story update.");
+    } else {
+      setVoiceState(VOICE_STATES.READY);
+      setVoiceStatus("Voice mode is ready. It will begin when a scene arrives.");
+    }
   }
 
   function stopVoiceMode() {
@@ -918,24 +1199,51 @@
     voiceMode.armed = false;
     voiceMode.started = false;
     voiceMode.needsRestart = false;
-    voiceMode.resumeMode = null;
-    voiceMode.resumeSceneKey = null;
-    voiceMode.phase = "idle";
     resetVoiceFlow();
+    setVoiceState(VOICE_STATES.IDLE, {
+      resumePolicy: RESUME_POLICIES.REPLAY_SCENE,
+      turnId: null,
+      sceneKey: null,
+      playbackKind: "none",
+      playbackCompleted: false,
+      awaitingInput: false,
+      actionCommitted: false,
+      pendingChoices: [],
+    });
     clearVoiceState();
     setVoiceStatus("Waiting to start.");
     syncVoiceModeUI();
   }
 
   function rememberVoiceResume() {
-    if (voiceMode.phase === "waiting_server") {
-      voiceMode.resumeMode = "full_scene";
-      voiceMode.resumeSceneKey = sceneState.key;
-    } else {
-      voiceMode.resumeMode = "choices_only";
-      voiceMode.resumeSceneKey = sceneState.key;
+    let resumePolicy = RESUME_POLICIES.REPLAY_SCENE;
+    if (voiceMode.state === VOICE_STATES.NARRATING_SCENE) {
+      resumePolicy = voiceMode.playbackKind === "scene"
+        ? RESUME_POLICIES.REPLAY_SCENE
+        : RESUME_POLICIES.REPLAY_CHOICES;
+    } else if (
+      voiceMode.state === VOICE_STATES.AWAITING_INPUT ||
+      voiceMode.state === VOICE_STATES.LISTENING_ACTION ||
+      voiceMode.state === VOICE_STATES.TRANSCRIBING_ACTION ||
+      voiceMode.state === VOICE_STATES.CONFIRMING_ACTION
+    ) {
+      resumePolicy = RESUME_POLICIES.REPLAY_CHOICES;
+    } else if (voiceMode.state === VOICE_STATES.READY) {
+      resumePolicy = voiceMode.pendingChoices.length > 0
+        ? RESUME_POLICIES.REPLAY_CHOICES
+        : RESUME_POLICIES.REPLAY_SCENE;
+    } else if (
+      voiceMode.state === VOICE_STATES.SENDING_ACTION ||
+      voiceMode.state === VOICE_STATES.WAITING_STORY
+    ) {
+      resumePolicy = RESUME_POLICIES.WAIT_FOR_NEXT_SCENE;
     }
-    saveVoiceState();
+    setVoiceState(voiceMode.state, {
+      turnId: sceneState.turnId || voiceMode.turnId,
+      sceneKey: sceneState.key || voiceMode.sceneKey,
+      resumePolicy,
+      pendingChoices: sceneState.message?.choices || voiceMode.pendingChoices,
+    });
   }
 
   function markVoiceModeForRestart() {
@@ -946,9 +1254,9 @@
     voiceMode.started = false;
     voiceMode.needsRestart = true;
     voiceMode.open = true;
-    voiceMode.phase = "idle";
     cancelVoiceCapture();
     stopAudio();
+    setVoiceState(VOICE_STATES.INTERRUPTED);
     setVoiceStatus("Voice mode paused. Restart when you are ready.");
   }
 
@@ -1052,9 +1360,18 @@
   }
 
   async function listenAndTranscribe(statusText) {
-    voiceMode.phase = "listening";
+    setVoiceState(VOICE_STATES.LISTENING_ACTION, {
+      awaitingInput: true,
+      playbackKind: "choice_prompt",
+      playbackCompleted: true,
+      resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+    });
     setVoiceStatus(statusText || "Listening...");
     const blob = await recordUntilPause();
+    setVoiceState(VOICE_STATES.TRANSCRIBING_ACTION, {
+      awaitingInput: true,
+      resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+    });
     setVoiceStatus("Transcribing...");
     const base64 = await blobToBase64(blob);
     return requestTranscription(base64);
@@ -1066,6 +1383,16 @@
     voiceMode.promptSceneKey = sceneState.key;
 
     while (voiceMode.started && waitingForInput && !voiceMode.needsRestart) {
+      setVoiceState(VOICE_STATES.AWAITING_INPUT, {
+        turnId: sceneState.turnId,
+        sceneKey: sceneState.key,
+        awaitingInput: true,
+        actionCommitted: false,
+        pendingChoices: sceneState.message?.choices || [],
+        playbackKind: "choice_prompt",
+        playbackCompleted: false,
+        resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+      });
       setVoiceStatus("Tell me what you want to do.");
       await speakPrompt(buildChoicePrompt(sceneState.message?.choices));
 
@@ -1085,7 +1412,13 @@
       }
 
       const transcriptLabel = `You said: "${actionText}"`;
-      voiceMode.phase = "confirming";
+      setVoiceState(VOICE_STATES.CONFIRMING_ACTION, {
+        awaitingInput: true,
+        actionCommitted: false,
+        playbackKind: "confirm_prompt",
+        playbackCompleted: false,
+        resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+      });
       setVoiceStatus("Confirming your action.", transcriptLabel);
       await speakPrompt(`You said: ${actionText}. Is that correct? Say yes or no.`);
 
