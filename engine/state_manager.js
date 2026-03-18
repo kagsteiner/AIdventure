@@ -21,6 +21,7 @@ const PATHS = {
   story: path.join(GAME_DIR, "story.md"),
   lastScene: path.join(GAME_DIR, "last_scene.json"),
   lastTurn: path.join(GAME_DIR, "last_turn.json"),
+  pendingTurn: path.join(GAME_DIR, "pending_turn.json"),
   ttsCacheDir: path.join(GAME_DIR, "tts_cache"),
 };
 
@@ -127,6 +128,23 @@ export async function loadLastTurn() {
   if (!existsSync(PATHS.lastScene)) return null;
   const raw = await fs.readFile(PATHS.lastScene, "utf-8");
   return JSON.parse(raw);
+}
+
+export async function savePendingTurn(turn) {
+  await ensureGameDir();
+  await fs.writeFile(PATHS.pendingTurn, JSON.stringify(turn, null, 2), "utf-8");
+}
+
+export async function loadPendingTurn() {
+  if (!existsSync(PATHS.pendingTurn)) return null;
+  const raw = await fs.readFile(PATHS.pendingTurn, "utf-8");
+  return JSON.parse(raw);
+}
+
+export async function clearPendingTurn() {
+  try {
+    await fs.unlink(PATHS.pendingTurn);
+  } catch {}
 }
 
 // --- Helpers ---

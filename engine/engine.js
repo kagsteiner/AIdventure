@@ -12,6 +12,9 @@ import {
   appendStory,
   loadState,
   loadLastTurn,
+  loadPendingTurn,
+  savePendingTurn,
+  clearPendingTurn,
   clearGameState,
 } from "./state_manager.js";
 import { buildWorld } from "./world_builder.js";
@@ -41,6 +44,24 @@ function resolveInput(input, choices) {
   return trimmed;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForPendingTurn(ui) {
+  const pending = await loadPendingTurn();
+  if (!pending) return;
+
+  await ui.showThinking();
+  if (ui.showMessage) {
+    await ui.showMessage("The next scene is still being generated. Please wait a moment...");
+  }
+
+  while (await loadPendingTurn()) {
+    await sleep(500);
+  }
+}
+
 /**
  * Run the main game loop.
  * @param {object} ui - A UI adapter instance (TerminalUI, AudiobookUI, etc.)
@@ -67,6 +88,7 @@ export async function runGame(ui) {
         return;
       }
     } else {
+      await waitForPendingTurn(ui);
       await ui.showResuming();
       await ui.showStatus();
       const lastTurn = await loadLastTurn();
@@ -115,6 +137,10 @@ export async function runGame(ui) {
       const action = resolveInput(rawInput, currentChoices);
 
       await ui.showThinking();
+      await savePendingTurn({
+        action,
+        submitted_at: new Date().toISOString(),
+      });
 
       try {
         const result = await processTurn(action);
@@ -126,8 +152,10 @@ export async function runGame(ui) {
         await appendLog(result.narrative);
         await appendStory(`> *${action}*\n\n${result.narrative}`);
         await ui.showScene(result.narrative, result.ascii_art, result.choices);
+        await clearPendingTurn();
         currentChoices = result.choices;
       } catch (err) {
+        await clearPendingTurn();
         await ui.showTurnError(err.message);
       }
     }
