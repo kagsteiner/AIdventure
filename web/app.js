@@ -86,14 +86,11 @@
   narrationAudio.playsInline = true;
 
   const persistedVoiceState = loadVoiceState();
-  const persistedSceneCache = loadSceneCache();
-  let persistedTtsCache = loadTtsCache();
   const sceneState = {
-    message: persistedSceneCache?.message || null,
-    key: persistedSceneCache?.sceneKey || null,
-    turnId: persistedSceneCache?.turnId || null,
-    isReplay: Boolean(persistedSceneCache?.isReplay),
-    source: persistedSceneCache?.message ? "cache" : "none",
+    message: null,
+    key: null,
+    turnId: null,
+    isReplay: false,
   };
 
   const voiceMode = {
@@ -156,62 +153,9 @@
     localStorage.removeItem(VOICE_STORAGE_KEY);
   }
 
-  function loadSceneCache() {
-    try {
-      const raw = localStorage.getItem(VOICE_SCENE_CACHE_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-
-  function saveSceneCache(msg, isReplay) {
-    if (!msg) return;
-    const payload = {
-      turnId: msg.turnId || null,
-      sceneKey: getSceneKey(msg),
-      isReplay: Boolean(isReplay),
-      message: {
-        type: msg.type || "scene",
-        turnId: msg.turnId || null,
-        narrative: msg.narrative || "",
-        asciiArt: msg.asciiArt || null,
-        choices: Array.isArray(msg.choices) ? msg.choices : [],
-        audio: msg.audio || null,
-      },
-    };
-    localStorage.setItem(VOICE_SCENE_CACHE_KEY, JSON.stringify(payload));
-  }
-
-  function clearSceneCache() {
-    localStorage.removeItem(VOICE_SCENE_CACHE_KEY);
-  }
-
-  function loadTtsCache() {
-    try {
-      const raw = localStorage.getItem(VOICE_TTS_CACHE_KEY);
-      if (!raw) return {};
-      return JSON.parse(raw) || {};
-    } catch {
-      return {};
-    }
-  }
-
-  function getCachedTts(text) {
-    const key = hashString(`tts:${text}`);
-    return persistedTtsCache[key]?.audio || null;
-  }
-
-  function saveCachedTts(text, audio) {
-    if (!text || !audio) return;
-    const key = hashString(`tts:${text}`);
-    persistedTtsCache[key] = { audio, updatedAt: Date.now() };
-    const entries = Object.entries(persistedTtsCache)
-      .sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0))
-      .slice(0, 20);
-    persistedTtsCache = Object.fromEntries(entries);
-    localStorage.setItem(VOICE_TTS_CACHE_KEY, JSON.stringify(persistedTtsCache));
+  function clearLegacyClientAudioCaches() {
+    try { localStorage.removeItem(VOICE_SCENE_CACHE_KEY); } catch {}
+    try { localStorage.removeItem(VOICE_TTS_CACHE_KEY); } catch {}
   }
 
   function getWSUrl() {
@@ -239,6 +183,10 @@
       asciiArt: msg?.asciiArt || "",
       choices: msg?.choices || [],
     }));
+  }
+
+  function getTurnId(msg) {
+    return msg?.turnId || getSceneKey(msg);
   }
 
   function normalizeText(text) {
@@ -305,6 +253,8 @@
     switch (voiceMode.state) {
       case VOICE_STATES.NARRATING_SCENE:
         return "Narrating...";
+      case VOICE_STATES.AWAITING_INPUT:
+        return "Awaiting Input...";
       case VOICE_STATES.LISTENING_ACTION:
         return "Listening...";
       case VOICE_STATES.TRANSCRIBING_ACTION:
@@ -371,13 +321,10 @@
       narrativeContent.innerHTML = "";
       statusBar.innerHTML = "";
       waitingForInput = false;
-      if (!(voiceMode.needsRestart && sceneState.message)) {
-        sceneState.message = null;
-        sceneState.key = null;
-        sceneState.turnId = null;
-        sceneState.isReplay = false;
-        sceneState.source = "none";
-      }
+      sceneState.message = null;
+      sceneState.key = null;
+      sceneState.turnId = null;
+      sceneState.isReplay = false;
       if (!voiceMode.started) {
         setVoiceState(voiceMode.needsRestart ? VOICE_STATES.INTERRUPTED : VOICE_STATES.IDLE);
       }
@@ -426,14 +373,6 @@
         break;
 
       case "replay":
-        if (
-          sceneState.source === "cache" &&
-          msg.turnId &&
-          sceneState.turnId === msg.turnId
-        ) {
-          setSceneState(msg, true);
-          break;
-        }
         appendSessionDivider();
         renderScene(msg);
         setSceneState(msg, true);
@@ -457,7 +396,6 @@
           playbackCompleted: true,
           pendingChoices: [],
         });
-        clearSceneCache();
         appendTextWithAudio(msg.text, msg.audio);
         if (voiceMode.started && msg.audio) queueVoiceAudio(msg.audio, "Starting a new story.");
         break;
@@ -806,13 +744,12 @@
     });
   }
 
-  function setSceneState(msg, isReplay) {
+  function setSceneState(msg, isReplay, updateVoiceTurnContext) {
     sceneState.message = msg;
     sceneState.key = getSceneKey(msg);
-    sceneState.turnId = msg?.turnId || sceneState.key;
+    sceneState.turnId = getTurnId(msg);
     sceneState.isReplay = isReplay;
-    sceneState.source = "live";
-    saveSceneCache(msg, isReplay);
+    if (updateVoiceTurnContext === false) return;
     setVoiceState(voiceMode.state, {
       turnId: sceneState.turnId,
       sceneKey: sceneState.key,
@@ -901,9 +838,6 @@
   }
 
   function requestTts(text) {
-    const cachedAudio = getCachedTts(text);
-    if (cachedAudio) return Promise.resolve(cachedAudio);
-
     return new Promise((resolve, reject) => {
       const requestId = `tts-${Date.now()}-${++ttsCounter}`;
       const timeoutId = window.setTimeout(() => {
@@ -915,10 +849,7 @@
         resolve: (msg) => {
           clearTimeout(timeoutId);
           if (msg.error) reject(new Error(msg.error));
-          else {
-            if (msg.audio) saveCachedTts(text, msg.audio);
-            resolve(msg.audio || null);
-          }
+          else resolve(msg.audio || null);
         },
         reject: (message) => {
           clearTimeout(timeoutId);
@@ -1054,17 +985,26 @@
   function startVoiceSceneFlow(msg, isReplay) {
     if (!voiceMode.started) return;
 
-    setSceneState(msg, isReplay);
+    const incomingTurnId = getTurnId(msg);
+    const incomingSceneKey = getSceneKey(msg);
+    const previousTurnId = voiceMode.turnId;
+    const previousActionCommitted = voiceMode.actionCommitted;
+    const previousResumePolicy = voiceMode.resumePolicy;
+
+    setSceneState(msg, isReplay, false);
     resetVoiceFlow();
 
     enqueueVoiceStep(async () => {
       if (
         isReplay &&
-        voiceMode.resumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE &&
-        voiceMode.actionCommitted &&
-        voiceMode.turnId === sceneState.turnId
+        previousResumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE &&
+        previousActionCommitted &&
+        previousTurnId === incomingTurnId
       ) {
+        setSceneState(msg, isReplay, false);
         setVoiceState(VOICE_STATES.WAITING_STORY, {
+          turnId: previousTurnId,
+          sceneKey: incomingSceneKey,
           awaitingInput: false,
           actionCommitted: true,
           playbackKind: "none",
@@ -1075,6 +1015,7 @@
         return;
       }
 
+      setSceneState(msg, isReplay);
       const narrationMode = getResumeNarrationMode(sceneState.key, isReplay);
 
       if (narrationMode === "choices_only") {
@@ -1117,7 +1058,7 @@
           pendingChoices: msg.choices || [],
           resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
         });
-        await runVoiceInputCycle();
+        await runVoiceInputCycle({ skipChoicePrompt: true });
       } else {
         setVoiceState(VOICE_STATES.READY, {
           playbackCompleted: true,
@@ -1131,9 +1072,6 @@
   }
 
   async function primeVoiceMode() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("This browser does not support microphone access.");
-    }
     if (!window.MediaRecorder) {
       throw new Error("This browser does not support voice recording.");
     }
@@ -1149,14 +1087,12 @@
       narrationAudio.load();
     } catch {}
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop());
   }
 
   async function startVoiceMode() {
     voiceMode.open = true;
     setVoiceState(VOICE_STATES.READY);
-    setVoiceStatus("Requesting microphone and audio access...");
+    setVoiceStatus("Preparing audio...");
 
     try {
       await primeVoiceMode();
@@ -1366,8 +1302,9 @@
       playbackCompleted: true,
       resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
     });
-    setVoiceStatus(statusText || "Listening...");
+    setVoiceStatus("Requesting microphone access...");
     const blob = await recordUntilPause();
+    setVoiceStatus(statusText || "Listening...");
     setVoiceState(VOICE_STATES.TRANSCRIBING_ACTION, {
       awaitingInput: true,
       resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
@@ -1377,24 +1314,27 @@
     return requestTranscription(base64);
   }
 
-  async function runVoiceInputCycle() {
+  async function runVoiceInputCycle(options) {
     if (!voiceMode.started || !waitingForInput || voiceMode.promptSceneKey === sceneState.key) return;
 
+    const skipChoicePrompt = Boolean(options?.skipChoicePrompt);
     voiceMode.promptSceneKey = sceneState.key;
 
     while (voiceMode.started && waitingForInput && !voiceMode.needsRestart) {
-      setVoiceState(VOICE_STATES.AWAITING_INPUT, {
-        turnId: sceneState.turnId,
-        sceneKey: sceneState.key,
-        awaitingInput: true,
-        actionCommitted: false,
-        pendingChoices: sceneState.message?.choices || [],
-        playbackKind: "choice_prompt",
-        playbackCompleted: false,
-        resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
-      });
-      setVoiceStatus("Tell me what you want to do.");
-      await speakPrompt(buildChoicePrompt(sceneState.message?.choices));
+      if (!skipChoicePrompt) {
+        setVoiceState(VOICE_STATES.AWAITING_INPUT, {
+          turnId: sceneState.turnId,
+          sceneKey: sceneState.key,
+          awaitingInput: true,
+          actionCommitted: false,
+          pendingChoices: sceneState.message?.choices || [],
+          playbackKind: "choice_prompt",
+          playbackCompleted: false,
+          resumePolicy: RESUME_POLICIES.REPLAY_CHOICES,
+        });
+        setVoiceStatus("Tell me what you want to do.");
+        await speakPrompt(buildChoicePrompt(sceneState.message?.choices));
+      }
 
       let actionText = "";
       try {
@@ -1511,6 +1451,7 @@
     }
   });
 
+  clearLegacyClientAudioCaches();
   syncVoiceModeUI();
   if (voiceMode.needsRestart) {
     setVoiceStatus("Voice mode paused. Restart when you are ready.");
