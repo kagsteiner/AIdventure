@@ -22,6 +22,10 @@
   const voiceModeTitle = document.getElementById("voice-mode-title");
   const voiceModeDescription = document.getElementById("voice-mode-description");
   const voiceModeActionBtn = document.getElementById("voice-mode-action-btn");
+  const voiceModeRestartHelp = document.getElementById("voice-mode-restart-help");
+  const voiceModeChoiceActions = document.getElementById("voice-mode-choice-actions");
+  const voiceModeReplayBtn = document.getElementById("voice-mode-replay-btn");
+  const voiceModeChoicesBtn = document.getElementById("voice-mode-choices-btn");
   const voiceModeStatus = document.getElementById("voice-mode-status");
   const voiceModeTranscript = document.getElementById("voice-mode-transcript");
   const voiceModeExitBtn = document.getElementById("voice-mode-exit-btn");
@@ -107,6 +111,7 @@
     playbackCompleted: Boolean(persistedVoiceState.playbackCompleted),
     awaitingInput: Boolean(persistedVoiceState.awaitingInput),
     actionCommitted: Boolean(persistedVoiceState.actionCommitted),
+    resumeDecisionRequired: Boolean(persistedVoiceState.resumeDecisionRequired),
     pendingChoices: Array.isArray(persistedVoiceState.pendingChoices) ? persistedVoiceState.pendingChoices : [],
     lastTranscript: persistedVoiceState.lastTranscript || "",
     flowId: 0,
@@ -143,6 +148,7 @@
       playbackCompleted: voiceMode.playbackCompleted,
       awaitingInput: voiceMode.awaitingInput,
       actionCommitted: voiceMode.actionCommitted,
+      resumeDecisionRequired: voiceMode.resumeDecisionRequired,
       pendingChoices: voiceMode.pendingChoices,
       lastTranscript: voiceMode.lastTranscript,
     };
@@ -285,6 +291,7 @@
     if ("playbackCompleted" in next) voiceMode.playbackCompleted = next.playbackCompleted;
     if ("awaitingInput" in next) voiceMode.awaitingInput = next.awaitingInput;
     if ("actionCommitted" in next) voiceMode.actionCommitted = next.actionCommitted;
+    if ("resumeDecisionRequired" in next) voiceMode.resumeDecisionRequired = next.resumeDecisionRequired;
     if ("pendingChoices" in next) voiceMode.pendingChoices = next.pendingChoices;
     saveVoiceState();
     syncVoiceModeUI();
@@ -299,6 +306,10 @@
       ? "Restart voice mode to reconnect audio and microphone access. The app will resume from the current story state."
       : "Start narration, then speak your choice after the prompt. The app will repeat what it heard and ask for a yes or no confirmation.";
 
+    const showRestartChoice = voiceMode.needsRestart && voiceMode.resumeDecisionRequired;
+    voiceModeActionBtn.classList.toggle("hidden", showRestartChoice);
+    voiceModeRestartHelp.classList.toggle("hidden", !showRestartChoice);
+    voiceModeChoiceActions.classList.toggle("hidden", !showRestartChoice);
     voiceModeActionBtn.textContent = getVoiceActionLabel();
     voiceModeActionBtn.disabled = voiceMode.started && !voiceMode.needsRestart;
     voiceModeExitBtn.textContent = voiceMode.armed || voiceMode.started ? "Stop Voice Mode" : "Back to normal view";
@@ -1091,7 +1102,9 @@
 
   async function startVoiceMode() {
     voiceMode.open = true;
-    setVoiceState(VOICE_STATES.READY);
+    setVoiceState(VOICE_STATES.READY, {
+      resumeDecisionRequired: false,
+    });
     setVoiceStatus("Preparing audio...");
 
     try {
@@ -1144,6 +1157,7 @@
       playbackCompleted: false,
       awaitingInput: false,
       actionCommitted: false,
+      resumeDecisionRequired: false,
       pendingChoices: [],
     });
     clearVoiceState();
@@ -1153,10 +1167,14 @@
 
   function rememberVoiceResume() {
     let resumePolicy = RESUME_POLICIES.REPLAY_SCENE;
+    let resumeDecisionRequired = false;
     if (voiceMode.state === VOICE_STATES.NARRATING_SCENE) {
-      resumePolicy = voiceMode.playbackKind === "scene"
-        ? RESUME_POLICIES.REPLAY_SCENE
-        : RESUME_POLICIES.REPLAY_CHOICES;
+      if (voiceMode.playbackKind === "scene") {
+        resumePolicy = RESUME_POLICIES.REPLAY_SCENE;
+        resumeDecisionRequired = true;
+      } else {
+        resumePolicy = RESUME_POLICIES.REPLAY_CHOICES;
+      }
     } else if (
       voiceMode.state === VOICE_STATES.AWAITING_INPUT ||
       voiceMode.state === VOICE_STATES.LISTENING_ACTION ||
@@ -1178,6 +1196,7 @@
       turnId: sceneState.turnId || voiceMode.turnId,
       sceneKey: sceneState.key || voiceMode.sceneKey,
       resumePolicy,
+      resumeDecisionRequired,
       pendingChoices: sceneState.message?.choices || voiceMode.pendingChoices,
     });
   }
@@ -1194,6 +1213,14 @@
     stopAudio();
     setVoiceState(VOICE_STATES.INTERRUPTED);
     setVoiceStatus("Voice mode paused. Restart when you are ready.");
+  }
+
+  function startVoiceModeWithResumePolicy(resumePolicy) {
+    setVoiceState(voiceMode.state, {
+      resumePolicy,
+      resumeDecisionRequired: false,
+    });
+    startVoiceMode();
   }
 
   function cancelVoiceCapture() {
@@ -1424,6 +1451,14 @@
     if (!voiceMode.started || voiceMode.needsRestart) {
       startVoiceMode();
     }
+  });
+
+  voiceModeReplayBtn.addEventListener("click", () => {
+    startVoiceModeWithResumePolicy(RESUME_POLICIES.REPLAY_SCENE);
+  });
+
+  voiceModeChoicesBtn.addEventListener("click", () => {
+    startVoiceModeWithResumePolicy(RESUME_POLICIES.REPLAY_CHOICES);
   });
 
   voiceModeExitBtn.addEventListener("click", () => {

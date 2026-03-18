@@ -228,6 +228,38 @@ html, body {
   opacity: 0.72;
 }
 
+.voice-mode-help {
+  margin-top: 1rem;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.voice-mode-choice-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.voice-mode-choice-btn {
+  flex: 1;
+  min-height: 64px;
+  border: 1px solid #3a3953;
+  border-radius: 18px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.voice-mode-choice-btn:active {
+  transform: scale(0.985);
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
 #voice-mode-status {
   margin-top: 1rem;
   min-height: 1.6rem;

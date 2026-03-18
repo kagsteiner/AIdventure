@@ -54,6 +54,13 @@
           Start narration, then speak your choice after the prompt. The app will repeat what it heard and ask for a yes or no confirmation.
         </p>
         <button id="voice-mode-action-btn">Start Voice Mode</button>
+        <p id="voice-mode-restart-help" class="voice-mode-help hidden">
+          Playback was interrupted while the story was being narrated, so the app cannot know how much you already heard.
+        </p>
+        <div id="voice-mode-choice-actions" class="voice-mode-choice-actions hidden">
+          <button id="voice-mode-replay-btn" class="voice-mode-choice-btn">Replay Story</button>
+          <button id="voice-mode-choices-btn" class="voice-mode-choice-btn">Skip To Choices</button>
+        </div>
         <p id="voice-mode-status">Waiting to start.</p>
         <p id="voice-mode-transcript" class="hidden"></p>
         <button id="voice-mode-exit-btn" class="voice-mode-secondary">Back to normal view</button>
