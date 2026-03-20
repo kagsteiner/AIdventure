@@ -36,36 +36,11 @@
     <!-- Status bar + New Story button -->
     <div id="top-bar">
       <header id="status-bar"></header>
-      <button id="voice-mode-btn" title="Open voice-only mode">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-        Voice Mode
-      </button>
       <button id="new-story-btn" class="hidden" title="Start a new story">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
         New Story
       </button>
     </div>
-
-    <section id="voice-mode-screen" class="hidden" aria-live="polite">
-      <div class="voice-mode-card">
-        <p class="voice-mode-kicker">Voice Only Mode</p>
-        <h1 id="voice-mode-title">Hands-free play</h1>
-        <p id="voice-mode-description">
-          Start narration, then speak your choice after the prompt. The app will repeat what it heard and ask for a yes or no confirmation.
-        </p>
-        <button id="voice-mode-action-btn">Start Voice Mode</button>
-        <p id="voice-mode-restart-help" class="voice-mode-help hidden">
-          Playback was interrupted while the story was being narrated, so the app cannot know how much you already heard.
-        </p>
-        <div id="voice-mode-choice-actions" class="voice-mode-choice-actions hidden">
-          <button id="voice-mode-replay-btn" class="voice-mode-choice-btn">Replay Story</button>
-          <button id="voice-mode-choices-btn" class="voice-mode-choice-btn">Skip To Choices</button>
-        </div>
-        <p id="voice-mode-status">Waiting to start.</p>
-        <p id="voice-mode-transcript" class="hidden"></p>
-        <button id="voice-mode-exit-btn" class="voice-mode-secondary">Back to normal view</button>
-      </div>
-    </section>
 
     <!-- Narrative area -->
     <main id="narrative-area">
