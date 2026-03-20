@@ -112,6 +112,11 @@
     awaitingInput: Boolean(persistedVoiceState.awaitingInput),
     actionCommitted: Boolean(persistedVoiceState.actionCommitted),
     resumeDecisionRequired: Boolean(persistedVoiceState.resumeDecisionRequired),
+    /** True after an interrupt unless we know narration was idle (READY + playback completed). Persisted with voice state. */
+    restartNarrationUncertain:
+      persistedVoiceState.restartNarrationUncertain !== undefined
+        ? Boolean(persistedVoiceState.restartNarrationUncertain)
+        : true,
     pendingChoices: Array.isArray(persistedVoiceState.pendingChoices) ? persistedVoiceState.pendingChoices : [],
     lastTranscript: persistedVoiceState.lastTranscript || "",
     flowId: 0,
@@ -149,6 +154,7 @@
       awaitingInput: voiceMode.awaitingInput,
       actionCommitted: voiceMode.actionCommitted,
       resumeDecisionRequired: voiceMode.resumeDecisionRequired,
+      restartNarrationUncertain: voiceMode.restartNarrationUncertain,
       pendingChoices: voiceMode.pendingChoices,
       lastTranscript: voiceMode.lastTranscript,
     };
@@ -292,6 +298,7 @@
     if ("awaitingInput" in next) voiceMode.awaitingInput = next.awaitingInput;
     if ("actionCommitted" in next) voiceMode.actionCommitted = next.actionCommitted;
     if ("resumeDecisionRequired" in next) voiceMode.resumeDecisionRequired = next.resumeDecisionRequired;
+    if ("restartNarrationUncertain" in next) voiceMode.restartNarrationUncertain = next.restartNarrationUncertain;
     if ("pendingChoices" in next) voiceMode.pendingChoices = next.pendingChoices;
     saveVoiceState();
     syncVoiceModeUI();
@@ -307,8 +314,10 @@
       : "Start narration, then speak your choice after the prompt. The app will repeat what it heard and ask for a yes or no confirmation.";
 
     const showRestartChoice = voiceMode.needsRestart && voiceMode.resumeDecisionRequired;
+    const showRestartHelp =
+      voiceMode.needsRestart && voiceMode.restartNarrationUncertain;
     voiceModeActionBtn.classList.toggle("hidden", showRestartChoice);
-    voiceModeRestartHelp.classList.toggle("hidden", !showRestartChoice);
+    voiceModeRestartHelp.classList.toggle("hidden", !showRestartHelp);
     voiceModeChoiceActions.classList.toggle("hidden", !showRestartChoice);
     voiceModeActionBtn.textContent = getVoiceActionLabel();
     voiceModeActionBtn.disabled = voiceMode.started && !voiceMode.needsRestart;
@@ -1118,7 +1127,7 @@
       voiceMode.needsRestart = false;
       voiceMode.armed = false;
       clearVoiceState();
-      setVoiceState(VOICE_STATES.IDLE);
+      setVoiceState(VOICE_STATES.IDLE, { restartNarrationUncertain: false });
       setVoiceStatus(err.message || "Could not start voice mode.");
       appendError(err.message || "Could not start voice mode.");
       return;
@@ -1127,6 +1136,7 @@
     voiceMode.armed = true;
     voiceMode.started = true;
     voiceMode.needsRestart = false;
+    voiceMode.restartNarrationUncertain = false;
     saveVoiceState();
     syncVoiceModeUI();
 
@@ -1163,11 +1173,24 @@
       awaitingInput: false,
       actionCommitted: false,
       resumeDecisionRequired: false,
+      restartNarrationUncertain: false,
       pendingChoices: [],
     });
     clearVoiceState();
     setVoiceStatus("Waiting to start.");
     syncVoiceModeUI();
+  }
+
+  /**
+   * After an interrupt, we only treat narration as fully heard if voice flow was idle
+   * waiting for the server with no in-flight TTS. (Misses: WAITING_STORY — next update
+   * may never have played; NARRATING_* / prompts; etc.)
+   */
+  function computeRestartNarrationUncertain() {
+    return !(
+      voiceMode.state === VOICE_STATES.READY &&
+      voiceMode.playbackCompleted
+    );
   }
 
   function rememberVoiceResume() {
@@ -1221,6 +1244,7 @@
   function markVoiceModeForRestart() {
     if (!voiceMode.armed && !voiceMode.started) return;
 
+    const restartNarrationUncertain = computeRestartNarrationUncertain();
     rememberVoiceResume();
 
     voiceMode.started = false;
@@ -1228,7 +1252,7 @@
     voiceMode.open = true;
     cancelVoiceCapture();
     stopAudio();
-    setVoiceState(VOICE_STATES.INTERRUPTED);
+    setVoiceState(VOICE_STATES.INTERRUPTED, { restartNarrationUncertain });
     setVoiceStatus("Voice mode paused. Restart when you are ready.");
   }
 
