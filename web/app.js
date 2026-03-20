@@ -1101,6 +1101,10 @@
   }
 
   async function startVoiceMode() {
+    const shouldWaitForNextScene =
+      voiceMode.resumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE &&
+      voiceMode.turnId;
+
     voiceMode.open = true;
     setVoiceState(VOICE_STATES.READY, {
       resumeDecisionRequired: false,
@@ -1126,21 +1130,22 @@
     saveVoiceState();
     syncVoiceModeUI();
 
-    if (sceneState.message) {
-      startVoiceSceneFlow(sceneState.message, sceneState.isReplay || voiceMode.resumePolicy !== RESUME_POLICIES.REPLAY_SCENE);
-      return;
-    }
-
-    if (voiceMode.resumePolicy === RESUME_POLICIES.WAIT_FOR_NEXT_SCENE && voiceMode.turnId) {
+    if (shouldWaitForNextScene) {
       setVoiceState(VOICE_STATES.WAITING_STORY, {
         awaitingInput: false,
         actionCommitted: true,
       });
       setVoiceStatus("Voice mode is ready. Waiting for the next story update.");
-    } else {
-      setVoiceState(VOICE_STATES.READY);
-      setVoiceStatus("Voice mode is ready. It will begin when a scene arrives.");
+      return;
     }
+
+    if (sceneState.message) {
+      startVoiceSceneFlow(sceneState.message, sceneState.isReplay || voiceMode.resumePolicy !== RESUME_POLICIES.REPLAY_SCENE);
+      return;
+    }
+
+    setVoiceState(VOICE_STATES.READY);
+    setVoiceStatus("Voice mode is ready. It will begin when a scene arrives.");
   }
 
   function stopVoiceMode() {
@@ -1168,10 +1173,22 @@
   function rememberVoiceResume() {
     let resumePolicy = RESUME_POLICIES.REPLAY_SCENE;
     let resumeDecisionRequired = false;
+    if (
+      !voiceMode.actionCommitted &&
+      (
+        voiceMode.state === VOICE_STATES.NARRATING_SCENE ||
+        voiceMode.state === VOICE_STATES.AWAITING_INPUT ||
+        voiceMode.state === VOICE_STATES.LISTENING_ACTION ||
+        voiceMode.state === VOICE_STATES.TRANSCRIBING_ACTION ||
+        voiceMode.state === VOICE_STATES.CONFIRMING_ACTION
+      )
+    ) {
+      resumeDecisionRequired = true;
+    }
+
     if (voiceMode.state === VOICE_STATES.NARRATING_SCENE) {
       if (voiceMode.playbackKind === "scene") {
         resumePolicy = RESUME_POLICIES.REPLAY_SCENE;
-        resumeDecisionRequired = true;
       } else {
         resumePolicy = RESUME_POLICIES.REPLAY_CHOICES;
       }
