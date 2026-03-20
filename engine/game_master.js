@@ -28,7 +28,7 @@ Rules:
 - Maintain tension and pacing. Not everything should go the player's way.
 - Advance time naturally. A long journey might advance the day counter.
 - When the player tries something creative or unexpected, reward it.
-- Include sensory details: sounds, smells, weather, atmosphere.
+- Include sensory details: sounds, smells, weather, atmosphere; be variable, not only amber, not only tuning forks; don't overdo the sensory details.
 - ASCII art is optional — include it when the player arrives at a new location
   or encounters a notable creature/object.
 

@@ -63,7 +63,8 @@ export const STORY_TYPES = {
     world_tone: `Create a space opera universe with these characteristics:
 - A vast galactic civilization spanning multiple worlds and species
 - Advanced but comprehensible technology (FTL travel, AI, biotech, etc.)
-- Complex interstellar politics, factions, and competing interests
+- Complex interstellar politics, factions, and competing interests, characters and factions scheming and plotting against each other
+- Factions having hidden agendas and motivations that only become apparent later in the story
 - Ancient mysteries or precursor civilizations
 - Questions of consciousness, identity, and what it means to be human
 - Time dilation, relativistic effects, or other hard SF concepts used thoughtfully

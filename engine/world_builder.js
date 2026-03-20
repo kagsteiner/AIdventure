@@ -27,7 +27,7 @@ function buildSystemPrompt(storyType) {
 - The VERY FIRST part of opening_narrative must briefly name the peoples/races of this world and mention that both men and women are represented among adventurers.
 - Then invite the player to choose who they are from exactly four options.
 - choices MUST contain exactly 4 options, and each option must clearly include both a race and a gender (for example: "Elf woman ranger...", "Dwarf man smith...", etc.).
-- These 4 options are character-identity picks for the player's starting role in this world.`
+- These 4 options are character-identity picks for the player's starting role in this world. It is ABSOLUTELY CRITICAL to remember these throughout the game.`
     : "choices should contain 3-4 initial choices for the player.";
 
   return `You are a master world-builder for interactive fiction.
