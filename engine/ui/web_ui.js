@@ -40,6 +40,21 @@ function makeTurnId() {
   return `turn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** OpenAI `gpt-4o-mini-tts` voices the browser may select (see OpenAI TTS docs). */
+const OPENAI_TTS_VOICES = new Set([
+  "alloy",
+  "ash",
+  "ballad",
+  "coral",
+  "echo",
+  "fable",
+  "nova",
+  "onyx",
+  "sage",
+  "shimmer",
+  "verse",
+]);
+
 export class WebUI {
   constructor(ws) {
     this.ws = ws;
@@ -59,6 +74,11 @@ export class WebUI {
     this.ws.on("message", (raw) => {
       try {
         const msg = JSON.parse(raw.toString());
+        if (msg?.type === "voicePreference" && typeof msg.voice === "string") {
+          const v = msg.voice.trim().toLowerCase();
+          if (OPENAI_TTS_VOICES.has(v)) this.voice = v;
+          return;
+        }
         if (msg?.type === "transcribeAudio" && msg.data) {
           this._handleTranscriptionRequest(msg).catch(() => {});
           return;

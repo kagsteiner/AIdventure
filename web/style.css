@@ -119,6 +119,7 @@ html, body {
   gap: 0.3rem;
 }
 
+#settings-btn,
 #new-story-btn {
   flex-shrink: 0;
   display: inline-flex;
@@ -134,16 +135,125 @@ html, body {
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+#settings-btn {
+  margin-right: 0.35rem;
+}
+#new-story-btn {
   margin-right: 0.75rem;
 }
+#settings-btn:hover,
 #new-story-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
+#settings-btn:active,
 #new-story-btn:active {
   background: var(--accent-glow);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ── Settings modal (above game) ─────────────────────── */
+
+#settings-modal {
+  z-index: 200;
+  background: rgba(10, 10, 15, 0.75);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.settings-panel {
+  text-align: left;
+  max-width: 360px;
+  width: calc(100% - 2rem);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid #2a2a40;
+  background: var(--bg-card);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.settings-panel h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.settings-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.settings-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+  line-height: 1.45;
+}
+
+#tts-voice-select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid #333;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.settings-done {
+  width: 100%;
+  padding: 0.65rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-done:active {
+  filter: brightness(1.05);
+}
+
+/* ── Narrate (scene update) ───────────────────────────── */
+
+.narrate-row {
+  margin: 0.65rem 0 0.15rem;
+}
+
+.narrate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.narrate-btn:hover {
+  background: var(--accent-glow);
+}
+
+.narrate-btn:active:not(:disabled) {
+  background: rgba(155, 125, 255, 0.35);
+}
+
+.narrate-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 /* ── Narrative area ───────────────────────────────────── */
@@ -254,29 +364,6 @@ html, body {
   margin: 0 auto;
 }
 
-#mic-btn {
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 2px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-}
-#mic-btn:active, #mic-btn.recording {
-  background: var(--accent);
-  color: #fff;
-  transform: scale(1.08);
-}
-#mic-btn.recording {
-  animation: pulse 1s infinite;
-}
-
 #text-input {
   flex: 1;
   min-width: 0;
@@ -373,11 +460,6 @@ html, body {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
-  50%      { box-shadow: 0 0 0 12px transparent; }
 }
 
 @keyframes bounce {

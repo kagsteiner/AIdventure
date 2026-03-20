@@ -2,7 +2,7 @@
  * AIdventure — Web Client
  *
  * Connects to the game server via WebSocket, renders the narrative,
- * handles push-to-talk recording, and a ready chime when scenes arrive.
+ * text input, optional scene narration (Narrate), and voice preference.
  */
 
 (function () {
@@ -16,6 +16,7 @@
   const reconnectBtn = document.getElementById("reconnect-btn");
   const gameEl = document.getElementById("game");
   const statusBar = document.getElementById("status-bar");
+  const settingsBtn = document.getElementById("settings-btn");
   const newStoryBtn = document.getElementById("new-story-btn");
   const narrativeArea = document.getElementById("narrative-area");
   const narrativeContent = document.getElementById("narrative-content");
@@ -25,16 +26,81 @@
   const micBtn = document.getElementById("mic-btn");
   const textInput = document.getElementById("text-input");
   const sendBtn = document.getElementById("send-btn");
+  const settingsModal = document.getElementById("settings-modal");
+  const settingsCloseBtn = document.getElementById("settings-close");
+  const ttsVoiceSelect = document.getElementById("tts-voice-select");
+
+  const TTS_VOICE_STORAGE_KEY = "aidventure.tts-voice";
+  const DEFAULT_TTS_VOICE = "nova";
+
+  /** Must match server `OPENAI_TTS_VOICES` in engine/ui/web_ui.js */
+  const OPENAI_TTS_VOICES = [
+    { id: "alloy", label: "Alloy" },
+    { id: "ash", label: "Ash" },
+    { id: "ballad", label: "Ballad" },
+    { id: "coral", label: "Coral" },
+    { id: "echo", label: "Echo" },
+    { id: "fable", label: "Fable" },
+    { id: "nova", label: "Nova" },
+    { id: "onyx", label: "Onyx" },
+    { id: "sage", label: "Sage" },
+    { id: "shimmer", label: "Shimmer" },
+    { id: "verse", label: "Verse" },
+  ];
 
   let ws = null;
-  let mediaRecorder = null;
-  let recordedChunks = [];
-  let isRecording = false;
   let waitingForInput = false;
   let password = "";
+  let ttsCounter = 0;
+  let currentBlobUrl = null;
 
+  const pendingTts = new Map();
   const readySound = new Audio("sound/sound.mp3");
+  const narrationAudio = new Audio();
+
   readySound.preload = "auto";
+  narrationAudio.preload = "auto";
+  narrationAudio.playsInline = true;
+
+  function getStoredTtsVoice() {
+    try {
+      const v = (localStorage.getItem(TTS_VOICE_STORAGE_KEY) || DEFAULT_TTS_VOICE).trim().toLowerCase();
+      if (OPENAI_TTS_VOICES.some((o) => o.id === v)) return v;
+    } catch {}
+    return DEFAULT_TTS_VOICE;
+  }
+
+  function setStoredTtsVoice(voice) {
+    try {
+      localStorage.setItem(TTS_VOICE_STORAGE_KEY, voice);
+    } catch {}
+  }
+
+  function populateTtsVoiceSelect() {
+    ttsVoiceSelect.innerHTML = "";
+    for (const { id, label } of OPENAI_TTS_VOICES) {
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = label;
+      ttsVoiceSelect.appendChild(opt);
+    }
+    ttsVoiceSelect.value = getStoredTtsVoice();
+  }
+
+  function sendVoicePreference() {
+    sendJSON({ type: "voicePreference", voice: getStoredTtsVoice() });
+  }
+
+  function openSettings() {
+    ttsVoiceSelect.value = getStoredTtsVoice();
+    settingsModal.classList.remove("hidden");
+    settingsModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeSettings() {
+    settingsModal.classList.add("hidden");
+    settingsModal.setAttribute("aria-hidden", "true");
+  }
 
   function getWSUrl() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -54,17 +120,133 @@
     return "";
   }
 
-  function blobToBase64(blob) {
+  function base64ToBytes(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  /** Same composition as engine/ui/web_ui.js showScene speech text (for TTS cache hits). */
+  function buildSceneSpeechText(msg) {
+    let t = (msg.narrative || "").trim();
+    const choices = msg.choices;
+    if (choices && choices.length > 0) {
+      t += "\n\n" + choices.map((c, i) => `${i + 1}: ${c}`).join(". ");
+    }
+    return t;
+  }
+
+  function stopNarrationPlayback() {
+    narrationAudio.pause();
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = null;
+    }
+    narrationAudio.removeAttribute("src");
+    try {
+      narrationAudio.load();
+    } catch {}
+  }
+
+  function playAudioBase64(base64) {
+    if (!base64) return Promise.resolve();
+    stopNarrationPlayback();
+
+    const bytes = base64ToBytes(base64);
+    const blob = new Blob([bytes], { type: "audio/mpeg" });
+    currentBlobUrl = URL.createObjectURL(blob);
+    narrationAudio.src = currentBlobUrl;
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "playing";
+    }
+
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = typeof reader.result === "string" ? reader.result.split(",")[1] : "";
-        if (!result) reject(new Error("Could not encode audio."));
-        else resolve(result);
+      function cleanupPlayback() {
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "none";
+        }
+        stopNarrationPlayback();
+      }
+      const onEnded = () => {
+        narrationAudio.removeEventListener("ended", onEnded);
+        narrationAudio.removeEventListener("error", onError);
+        cleanupPlayback();
+        resolve();
       };
-      reader.onerror = () => reject(new Error("Could not read audio."));
-      reader.readAsDataURL(blob);
+      const onError = () => {
+        narrationAudio.removeEventListener("ended", onEnded);
+        narrationAudio.removeEventListener("error", onError);
+        cleanupPlayback();
+        reject(new Error("Audio playback failed."));
+      };
+      narrationAudio.addEventListener("ended", onEnded);
+      narrationAudio.addEventListener("error", onError);
+      narrationAudio.play().catch((err) => {
+        narrationAudio.removeEventListener("ended", onEnded);
+        narrationAudio.removeEventListener("error", onError);
+        cleanupPlayback();
+        reject(err);
+      });
     });
+  }
+
+  function requestTts(text) {
+    return new Promise((resolve, reject) => {
+      const requestId = `tts-${Date.now()}-${++ttsCounter}`;
+      const timeoutId = window.setTimeout(() => {
+        pendingTts.delete(requestId);
+        reject(new Error("Speech generation timed out."));
+      }, 60000);
+
+      pendingTts.set(requestId, {
+        resolve: (msg) => {
+          clearTimeout(timeoutId);
+          if (msg.error) reject(new Error(msg.error));
+          else resolve(msg.audio || null);
+        },
+        reject: (message) => {
+          clearTimeout(timeoutId);
+          reject(new Error(message));
+        },
+      });
+
+      sendJSON({ type: "synthesizeText", text, requestId });
+    });
+  }
+
+  function resolvePendingTts(msg) {
+    const pending = pendingTts.get(msg.requestId);
+    if (!pending) return;
+    pendingTts.delete(msg.requestId);
+    pending.resolve(msg);
+  }
+
+  function rejectPendingTts(reason) {
+    for (const [, pending] of pendingTts.entries()) {
+      pending.reject(reason);
+    }
+    pendingTts.clear();
+  }
+
+  async function startSceneNarration(msg, btn) {
+    const text = buildSceneSpeechText(msg);
+    if (!text.trim()) return;
+
+    btn.disabled = true;
+    try {
+      const audio = await requestTts(text);
+      if (!audio) {
+        appendError("No narration audio returned.");
+        return;
+      }
+      await playAudioBase64(audio);
+    } catch (err) {
+      appendError(err.message || "Narration failed.");
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function connect() {
@@ -82,9 +264,12 @@
       narrativeContent.innerHTML = "";
       statusBar.innerHTML = "";
       waitingForInput = false;
+      sendVoicePreference();
     };
 
     ws.onclose = (e) => {
+      rejectPendingTts("Connection lost.");
+      stopNarrationPlayback();
       if (e.code === 4001) {
         authOverlay.classList.remove("hidden");
         connectOverlay.classList.add("hidden");
@@ -99,6 +284,10 @@
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
+        if (msg.type === "ttsResult") {
+          resolvePendingTts(msg);
+          return;
+        }
         handleMessage(msg);
       } catch {}
     };
@@ -112,12 +301,14 @@
 
       case "scene":
         hideThinking();
+        stopNarrationPlayback();
         renderScene(msg);
         playReadySound();
         break;
 
       case "replay":
         appendSessionDivider();
+        stopNarrationPlayback();
         renderScene(msg);
         break;
 
@@ -130,6 +321,7 @@
         narrativeContent.innerHTML = "";
         statusBar.innerHTML = "";
         waitingForInput = false;
+        stopNarrationPlayback();
         appendTextWithAudio(msg.text, msg.audio);
         break;
 
@@ -162,6 +354,7 @@
       case "quit":
         appendTextWithAudio(msg.text, msg.audio);
         disableInput();
+        stopNarrationPlayback();
         break;
     }
   }
@@ -190,6 +383,21 @@
       const p = document.createElement("p");
       p.textContent = para.trim();
       block.appendChild(p);
+    }
+
+    const speechText = buildSceneSpeechText(msg);
+    if (speechText.trim()) {
+      const row = document.createElement("div");
+      row.className = "narrate-row";
+      const narrateBtn = document.createElement("button");
+      narrateBtn.type = "button";
+      narrateBtn.className = "narrate-btn";
+      narrateBtn.setAttribute("aria-label", "Narrate this story update");
+      narrateBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg> Narrate';
+      narrateBtn.addEventListener("click", () => startSceneNarration(msg, narrateBtn));
+      row.appendChild(narrateBtn);
+      block.appendChild(row);
     }
 
     if (msg.choices && msg.choices.length > 0) {
@@ -327,6 +535,7 @@
     const trimmed = (text || "").trim();
     if (!trimmed || !waitingForInput) return;
     waitingForInput = false;
+    stopNarrationPlayback();
     appendPlayerAction(trimmed);
     sendJSON({ type: "text", text: trimmed });
     textInput.value = "";
@@ -336,6 +545,7 @@
   function sendAudio(base64) {
     if (!waitingForInput) return;
     waitingForInput = false;
+    stopNarrationPlayback();
     sendJSON({ type: "audio", data: base64 });
     disableInput();
   }
@@ -377,6 +587,8 @@
     mediaRecorder.stop();
   }
 
+  populateTtsVoiceSelect();
+
   textInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -386,21 +598,30 @@
 
   sendBtn.addEventListener("click", () => sendText(textInput.value));
 
-  micBtn.addEventListener("mousedown", startRecording);
-  micBtn.addEventListener("mouseup", stopRecording);
-  micBtn.addEventListener("mouseleave", stopRecording);
-  micBtn.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    startRecording();
-  });
-  micBtn.addEventListener("touchend", (e) => {
-    e.preventDefault();
-    stopRecording();
-  });
-
   newStoryBtn.addEventListener("click", () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       sendJSON({ type: "new_story" });
+    }
+  });
+
+  settingsBtn.addEventListener("click", () => openSettings());
+  settingsCloseBtn.addEventListener("click", () => closeSettings());
+
+  ttsVoiceSelect.addEventListener("change", () => {
+    const v = ttsVoiceSelect.value;
+    if (OPENAI_TTS_VOICES.some((o) => o.id === v)) {
+      setStoredTtsVoice(v);
+      sendVoicePreference();
+    }
+  });
+
+  settingsModal.addEventListener("click", (e) => {
+    if (e.target === settingsModal) closeSettings();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !settingsModal.classList.contains("hidden")) {
+      closeSettings();
     }
   });
 
