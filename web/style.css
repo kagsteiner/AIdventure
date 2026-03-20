@@ -368,31 +368,6 @@ html, body {
   margin-bottom: 0.5rem;
 }
 
-/* ── Speak button ────────────────────────────────────── */
-
-.speak-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.speak-btn:active {
-  background: var(--accent);
-  color: #fff;
-}
-.speak-btn svg {
-  flex-shrink: 0;
-}
-
 /* ── Animations ───────────────────────────────────────── */
 
 @keyframes fadeIn {

@@ -2,7 +2,7 @@
  * AIdventure — Web Client
  *
  * Connects to the game server via WebSocket, renders the narrative,
- * handles push-to-talk recording, and per-block audio playback.
+ * handles push-to-talk recording, and a ready chime when scenes arrive.
  */
 
 (function () {
@@ -32,14 +32,9 @@
   let isRecording = false;
   let waitingForInput = false;
   let password = "";
-  let currentBlobUrl = null;
 
   const readySound = new Audio("sound/sound.mp3");
-  const narrationAudio = new Audio();
-
   readySound.preload = "auto";
-  narrationAudio.preload = "auto";
-  narrationAudio.playsInline = true;
 
   function getWSUrl() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -57,13 +52,6 @@
     if (MediaRecorder.isTypeSupported("audio/mp4")) return "audio/mp4";
     if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) return "audio/webm;codecs=opus";
     return "";
-  }
-
-  function base64ToBytes(base64) {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
   }
 
   function blobToBase64(blob) {
@@ -142,7 +130,6 @@
         narrativeContent.innerHTML = "";
         statusBar.innerHTML = "";
         waitingForInput = false;
-        stopAudio();
         appendTextWithAudio(msg.text, msg.audio);
         break;
 
@@ -157,7 +144,7 @@
         break;
 
       case "menu":
-        renderMenu(msg.items, msg.audio);
+        renderMenu(msg.items);
         break;
 
       case "message":
@@ -177,73 +164,6 @@
         disableInput();
         break;
     }
-  }
-
-  function stopAudio() {
-    narrationAudio.pause();
-    if (currentBlobUrl) {
-      URL.revokeObjectURL(currentBlobUrl);
-      currentBlobUrl = null;
-    }
-  }
-
-  async function playAudioBase64(base64) {
-    if (!base64) return;
-    stopAudio();
-
-    try {
-      const bytes = base64ToBytes(base64);
-      const blob = new Blob([bytes], { type: "audio/mpeg" });
-      currentBlobUrl = URL.createObjectURL(blob);
-      narrationAudio.src = currentBlobUrl;
-
-      if ("mediaSession" in navigator) {
-        navigator.mediaSession.playbackState = "playing";
-      }
-
-      await new Promise((resolve, reject) => {
-        const onEnded = () => {
-          narrationAudio.removeEventListener("ended", onEnded);
-          narrationAudio.removeEventListener("error", onError);
-          resolve();
-        };
-        const onError = () => {
-          narrationAudio.removeEventListener("ended", onEnded);
-          narrationAudio.removeEventListener("error", onError);
-          reject(new Error("Audio playback failed."));
-        };
-        narrationAudio.addEventListener("ended", onEnded);
-        narrationAudio.addEventListener("error", onError);
-        narrationAudio.play().catch((err) => {
-          narrationAudio.removeEventListener("ended", onEnded);
-          narrationAudio.removeEventListener("error", onError);
-          reject(err);
-        });
-      });
-    } finally {
-      if ("mediaSession" in navigator) {
-        navigator.mediaSession.playbackState = "none";
-      }
-      if (currentBlobUrl) {
-        URL.revokeObjectURL(currentBlobUrl);
-        currentBlobUrl = null;
-      }
-      narrationAudio.removeAttribute("src");
-      narrationAudio.load();
-    }
-  }
-
-  function makePlayButton(base64) {
-    if (!base64) return null;
-    const btn = document.createElement("button");
-    btn.className = "speak-btn";
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg> Speak';
-    btn.addEventListener("click", () => {
-      playAudioBase64(base64).catch((err) => {
-        appendError("Audio play failed: " + err.message);
-      });
-    });
-    return btn;
   }
 
   function playReadySound() {
@@ -271,9 +191,6 @@
       p.textContent = para.trim();
       block.appendChild(p);
     }
-
-    const playBtn = makePlayButton(msg.audio);
-    if (playBtn) block.appendChild(playBtn);
 
     if (msg.choices && msg.choices.length > 0) {
       const choices = document.createElement("div");
@@ -306,7 +223,7 @@
     statusBar.innerHTML = parts.map((part) => `<span class="badge">${part}</span>`).join("");
   }
 
-  function renderMenu(items, audio) {
+  function renderMenu(items) {
     menuArea.innerHTML = "";
     menuArea.classList.remove("hidden");
     narrativeArea.classList.add("hidden");
@@ -314,9 +231,6 @@
     const heading = document.createElement("h2");
     heading.textContent = "Choose Your Adventure";
     menuArea.appendChild(heading);
-
-    const playBtn = makePlayButton(audio);
-    if (playBtn) menuArea.appendChild(playBtn);
 
     items.forEach((item, idx) => {
       const card = document.createElement("div");
@@ -331,17 +245,17 @@
     });
   }
 
-  function appendTextWithAudio(text, audio) {
-    if (!text && !audio) return;
+  function appendTextWithAudio(text, _audio) {
+    const hasText = Boolean(text && String(text).trim());
+    if (!hasText && !_audio) return;
     const el = document.createElement("div");
     el.className = "narrative-block";
-    if (text) {
+    if (hasText) {
       const p = document.createElement("p");
-      p.textContent = text;
+      p.textContent = String(text).trim();
       el.appendChild(p);
     }
-    const playBtn = makePlayButton(audio);
-    if (playBtn) el.appendChild(playBtn);
+    if (!el.childNodes.length) return;
     appendToNarrative(el);
   }
 
@@ -413,7 +327,6 @@
     const trimmed = (text || "").trim();
     if (!trimmed || !waitingForInput) return;
     waitingForInput = false;
-    stopAudio();
     appendPlayerAction(trimmed);
     sendJSON({ type: "text", text: trimmed });
     textInput.value = "";
@@ -423,7 +336,6 @@
   function sendAudio(base64) {
     if (!waitingForInput) return;
     waitingForInput = false;
-    stopAudio();
     sendJSON({ type: "audio", data: base64 });
     disableInput();
   }
