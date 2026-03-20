@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node main.js",
     "web": "UI_MODE=web node main.js",
+    "retry-pending-turn": "node scripts/retry-pending-turn.js",
     "reset": "node -e \"import('fs').then(fs => { ['game/world.md','game/characters.json','game/state.json','game/log.md','game/summary.md','game/story.md'].forEach(f => { try { fs.unlinkSync(f) } catch {} }) })\""
   },
   "dependencies": {

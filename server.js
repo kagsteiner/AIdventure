@@ -13,6 +13,10 @@ import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { runGame } from "./engine/engine.js";
 import { WebUI } from "./engine/ui/web_ui.js";
+import {
+  getPendingTurnRecoveryStatus,
+  startPendingTurnRecovery,
+} from "./engine/recovery.js";
 
 const PORT = parseInt(process.env.WEB_PORT, 10) || 3006;
 const PASSWORD = process.env.WEB_PASSWORD || "";
@@ -33,6 +37,36 @@ if (!process.env.OPENAI_API_KEY) {
 
 const app = express();
 app.use(express.static("web"));
+
+function isLoopbackAddress(ip = "") {
+  return ip === "::1" || ip === "127.0.0.1" || ip === "::ffff:127.0.0.1";
+}
+
+function requireAdmin(req, res, next) {
+  const token = req.get("x-admin-token");
+  const authorized = PASSWORD ? token === PASSWORD : isLoopbackAddress(req.ip);
+  if (!authorized) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  next();
+}
+
+app.get("/api/admin/pending-turn", requireAdmin, async (_req, res) => {
+  res.json(await getPendingTurnRecoveryStatus());
+});
+
+app.post("/api/admin/retry-pending-turn", requireAdmin, async (_req, res) => {
+  const result = await startPendingTurnRecovery();
+  if (result.started) {
+    console.log("[recovery] pending turn retry started");
+  } else if (result.reason === "already_running") {
+    console.log("[recovery] pending turn retry already running");
+  } else {
+    console.log("[recovery] no pending turn to retry");
+  }
+  res.json(result);
+});
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
