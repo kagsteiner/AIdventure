@@ -336,7 +336,7 @@
         break;
 
       case "menu":
-        renderMenu(msg.items);
+        renderMenu(msg.items, msg.heading);
         break;
 
       case "message":
@@ -431,13 +431,13 @@
     statusBar.innerHTML = parts.map((part) => `<span class="badge">${part}</span>`).join("");
   }
 
-  function renderMenu(items) {
+  function renderMenu(items, headingText) {
     menuArea.innerHTML = "";
     menuArea.classList.remove("hidden");
     narrativeArea.classList.add("hidden");
 
     const heading = document.createElement("h2");
-    heading.textContent = "Choose Your Adventure";
+    heading.textContent = headingText || "Choose Your Adventure";
     menuArea.appendChild(heading);
 
     items.forEach((item, idx) => {

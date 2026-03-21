@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Maisie Duggan",
+    "role": "quest-giver, information source",
+    "location": "Maisie's Diner, Town Proper",
+    "description": "A sturdy woman in her late sixties with steel-gray hair pinned in a bun and hands that never stop moving — wiping counters, straightening napkin dispensers, fidgeting with her wedding ring from a husband who vanished in 1987. Her eyes are sharp and kind and deeply, permanently frightened. She speaks in the cadence of someone who has practiced sounding normal.",
+    "goals": "Wants the player to investigate the woman who washed ashore, whom Maisie is secretly sheltering in the diner's upstairs apartment. Maisie knows more about the town's history than she lets on and is terrified that the Sour Season is returning.",
+    "disposition_to_player": "friendly"
+  },
+  {
+    "name": "Dale Coombs",
+    "role": "companion, local guide",
+    "location": "Briar Sound Harbor",
+    "description": "A wiry lobsterman in his forties with a salt-crusted beard and a prosthetic left hand he carved himself from driftwood — the original was lost in a trap-hauling accident he refuses to discuss in detail, though he sometimes mentions the trap 'bit him.' He laughs too loud and too often, the way people do when the alternative is screaming.",
+    "goals": "Wants to understand why his traps keep coming up containing objects instead of lobsters — a pocket watch, a child's shoe, a jar of teeth. Wants to protect the bay he depends on. Will reluctantly help the player explore coastal areas.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "The Woman From The Rocks",
+    "role": "mystery, key to main quest",
+    "location": "Upstairs apartment, Maisie's Diner",
+    "description": "Appears to be in her thirties, with dark hair and skin that seems to shift between olive and pale depending on the light — or depending on something else. Her eyes are brown but contain flecks of a color that doesn't exist in normal chromatic space. She smells faintly of ozone and deep brine. When she speaks English, which is intermittent, her grammar is perfect but her idioms are wrong, as if learned from a textbook written by someone who only observed humans from a great distance.",
+    "goals": "Unknown. She seems to be warning about something, or mourning something, or both. She draws geometries on every available surface with her fingernails.",
+    "disposition_to_player": "unknown"
+  },
+  {
+    "name": "Selectman Virgil Potts",
+    "role": "missing person, quest hook",
+    "location": "Unknown (last seen at Town Hall)",
+    "description": "A portly, red-faced man in his fifties known for his bow ties and his talent for saying nothing with great conviction. His office was found with every surface covered in measurements written in increasingly erratic handwriting. His desk chair was warm when discovered, three days after anyone last saw him.",
+    "goals": "Unknown. His notes suggest he discovered something about the Pelagic Properties deal that changed his understanding of reality. Whether he fled, was taken, or stepped sideways into something else is unclear.",
+    "disposition_to_player": "unknown"
+  },
+  {
+    "name": "Dr. Lena Kowalski",
+    "role": "information source, potential antagonist",
+    "location": "Briar Sound Public Library",
+    "description": "A marine geologist from the University of Maine who arrived two weeks ago to study tidal anomalies and has since stopped returning her department's calls. She is thin, precise, and speaks with the calm authority of someone who has seen her entire scientific framework collapse and decided to keep taking notes anyway. Her left eye twitches when she lies. It twitches constantly now.",
+    "goals": "Wants to understand the geometry of the trench beneath Kettle Bay. Has begun to suspect that understanding it and surviving it may be mutually exclusive. Is considering whether the trade is worth it.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "Elton \"Grease\" Harrow",
+    "role": "antagonist, information source",
+    "location": "Cannery District",
+    "description": "Great-grandson of Aldous Harrow, the cannery founder. A gaunt man in his thirties who dresses too well for Briar Sound and smells of expensive cologne that doesn't quite mask something underneath — something organic and low-tide. He represents Pelagic Properties and speaks with the rehearsed warmth of a man who has been told what emotions look like but has never personally experienced them.",
+    "goals": "Wants the waterfront development to proceed. His reasons extend far beyond profit. The Harrow family has maintained a relationship with whatever lies beneath Kettle Bay for four generations, and Elton believes the next phase of that relationship requires specific construction — specific geometries — built on the shore.",
+    "disposition_to_player": "hostile"
+  },
+  {
+    "name": "Hattie Marsh",
+    "role": "oracle, information source",
+    "location": "Salt Marshes (small shack on the estuary edge)",
+    "description": "Ninety-three years old, sharp as a gutting knife, and completely blind — though she navigates the marshes without difficulty, as if the land tells her where it is. She smells like dried rosemary and low tide. She speaks in a Maine accent so thick it's almost another language, and she intersperses English with Passamaquoddy phrases she learned from her grandmother, who was one of the last to remember the old warnings.",
+    "goals": "Wants someone to listen before it's too late. Has been trying to warn the town for decades but has been dismissed as senile. Knows the geometries, knows the history, knows the cost of knowledge. Will share what she knows, but insists the player understand: some of what she tells them will change what they are.",
+    "disposition_to_player": "friendly"
+  },
+  {
+    "name": "Officer Brynn Calloway",
+    "role": "reluctant ally, information source",
+    "location": "Town Proper (Briar Sound Police Station)",
+    "description": "Granddaughter of the vanished Father Calloway. A compact, muscular woman in her early thirties with close-cropped red hair and a jaw that looks like it was designed for clenching. She became a cop to impose order on a world she has always sensed is fundamentally disordered. She carries her grandfather's crucifix but hasn't believed in God since she was twelve, when she found his last sermon transcript in the parish basement.",
+    "goals": "Officially investigating the selectman's disappearance. Unofficially terrified that whatever took her grandfather is still active. Wants rational explanations but is running out of them. Will help the player if convinced they're not crazy — or if convinced that crazy is the only appropriate response.",
+    "disposition_to_player": "neutral"
+  },
+  {
+    "name": "The Harbor Master (Edmund Pryce)",
+    "role": "ambiguous ally, enigma",
+    "location": "Harbor Master's Office, Briar Sound Harbor",
+    "description": "A tall, angular man of indeterminate age — could be forty, could be seventy — who arrived in Briar Sound eleven months ago with impeccable credentials that no one has verified. He speaks softly, precisely, and always seems to be listening to something just below the threshold of hearing. He carries a brass instrument that resembles a sextant but has too many moving parts and measures angles that don't correspond to any navigational system.",
+    "goals": "Claims to be monitoring tidal patterns. Is actually monitoring the rate at which local geometry is deviating from Euclidean norms. May be trying to prevent what's coming, or may be trying to calibrate it. His loyalties are unclear, possibly even to himself.",
+    "disposition_to_player": "neutral"
+  }
+]

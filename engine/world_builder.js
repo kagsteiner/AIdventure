@@ -8,7 +8,15 @@
  */
 
 import { queryLLM } from "./llm.js";
-import { saveWorld, saveCharacters, saveState, appendLog, appendStory } from "./state_manager.js";
+import {
+  saveWorld,
+  saveCharacters,
+  saveState,
+  appendLog,
+  appendStory,
+  loadActiveWorldSnapshot,
+  archiveCurrentWorld,
+} from "./state_manager.js";
 import { getStoryType } from "./story_types.js";
 
 function buildSystemPrompt(storyType) {
@@ -86,6 +94,148 @@ Be creative and original. Avoid generic tropes where possible.
 Create something with mystery, danger, and wonder in equal measure.`;
 }
 
+function buildTemplateSystemPrompt(storyType, template) {
+  const config = getStoryType(storyType);
+  const genreInstructions = storyType === "space_opera" ? "galaxy/universe" : "world";
+
+  return `You are reviving an established fictional ${genreInstructions} for a new interactive adventure.
+
+You will be given a reusable world template from a previous adventure. Treat it as canon.
+
+Your job is to create a NEW standalone adventure in the SAME setting:
+- Preserve established lore, factions, history, and the world's overall identity
+- Keep important existing characters consistent with prior canon
+- You MAY evolve the setting slightly with the passage of time, but do not contradict established facts
+- Add 2-4 new characters and at least 2 new or newly relevant locations
+- Create a fresh protagonist starting point and a new opening quest
+- The new adventure must welcome a player who has NOT seen the previous game
+- Reuse interesting old characters sparingly so the world feels familiar but not repetitive
+
+${config.world_tone}
+
+You MUST respond with a JSON object containing these exact keys:
+
+{
+  "world_lore": "A markdown document (1000-1500 words) describing the updated world and its current state",
+  "characters": [
+    {
+      "name": "string",
+      "role": "string",
+      "location": "string",
+      "description": "string",
+      "goals": "string",
+      "disposition_to_player": "string"
+    }
+  ],
+  "starting_state": {
+    "day": 1,
+    "time_of_day": "string",
+    "location": "string",
+    "sub_location": "string",
+    "health": "good",
+    "inventory": ["list of starting items"],
+    "gold": 0,
+    "active_quest": "string",
+    "quest_log": ["string"],
+    "reputation": {},
+    "genre": "${storyType}"
+  },
+  "opening_narrative": "string",
+  "ascii_art": "string",
+  "choices": ["string"]
+}
+
+Generate 6-10 interesting characters total, mixing established figures and new faces.
+The adventure should feel like a new book in the same universe.
+
+${config.narrative_style}
+
+Existing world template:
+World name: ${template.metadata.name}
+Genre: ${template.metadata.genre}
+Summary: ${template.metadata.summary || "No summary provided."}`;
+}
+
+function buildTemplateUserPrompt(template) {
+  return `Use this existing world template as canon and expand it into a fresh adventure.
+
+## Canon Summary
+${template.canon || "No canon summary provided."}
+
+## World Lore
+${template.world || ""}
+
+## Characters
+${JSON.stringify(template.characters || [], null, 2)}`;
+}
+
+function buildArchiveSystemPrompt(storyType) {
+  const genreInstructions = storyType === "space_opera" ? "universe" : "world";
+
+  return `You are a continuity editor creating a reusable canon template from an interactive fiction playthrough.
+
+You will receive the current ${genreInstructions} lore, character roster, and story transcript.
+
+Your task:
+- Distill the setting into a reusable canon packet for future adventures
+- Preserve the world's identity and important historical truths
+- Clean up noisy or contradictory character details
+- Summarize the major events of the completed adventure as setting history
+- Invent a strong, memorable reusable world name if the source material lacks one
+
+You MUST respond with a JSON object containing these exact keys:
+{
+  "name": "string",
+  "summary": "1-2 sentence summary of the world for menus",
+  "world_lore": "markdown reference document for the reusable world template",
+  "canon": "markdown canon summary including key events from the finished adventure",
+  "characters": [
+    {
+      "name": "string",
+      "role": "string",
+      "location": "string",
+      "description": "string",
+      "goals": "string",
+      "disposition_to_player": "string"
+    }
+  ]
+}
+
+The output must be suitable as a stable source of truth for future adventures in the same setting.`;
+}
+
+function clipStoryForArchive(story) {
+  if (!story || story.length <= 24000) return story || "";
+  return `${story.slice(0, 12000)}\n\n[... omitted middle chapters for brevity ...]\n\n${story.slice(-12000)}`;
+}
+
+function buildArchiveUserPrompt(snapshot) {
+  return `Create a reusable world template from this completed adventure.
+
+## Current World Lore
+${snapshot.world || ""}
+
+## Current Characters
+${JSON.stringify(snapshot.characters || [], null, 2)}
+
+## Current Adventure Transcript
+${clipStoryForArchive(snapshot.story || "")}`;
+}
+
+async function persistBuiltWorld(result) {
+  await saveWorld(result.world_lore);
+  await saveCharacters(result.characters);
+  await saveState(result.starting_state);
+  await appendLog(result.opening_narrative);
+  await appendStory(`# AIdventure\n\n---\n\n${result.opening_narrative}`);
+
+  return {
+    narrative: result.opening_narrative,
+    ascii_art: result.ascii_art || "",
+    choices: result.choices || [],
+  };
+}
+
 /**
  * Generate the initial world and persist all files.
  * Returns the opening scene data for display.
@@ -99,16 +249,36 @@ export async function buildWorld(storyType = 'sanderson_fantasy') {
   const userPrompt = buildUserPrompt(storyType);
 
   const result = await queryLLM(systemPrompt, userPrompt);
+  return persistBuiltWorld(result);
+}
 
-  await saveWorld(result.world_lore);
-  await saveCharacters(result.characters);
-  await saveState(result.starting_state);
-  await appendLog(result.opening_narrative);
-  await appendStory(`# AIdventure\n\n---\n\n${result.opening_narrative}`);
+export async function buildWorldFromTemplate(template, storyType = template?.metadata?.genre || "sanderson_fantasy") {
+  console.log(`\n  Returning to ${template?.metadata?.name || "a familiar world"}...\n`);
 
-  return {
-    narrative: result.opening_narrative,
-    ascii_art: result.ascii_art || "",
-    choices: result.choices || [],
-  };
+  const systemPrompt = buildTemplateSystemPrompt(storyType, template);
+  const userPrompt = buildTemplateUserPrompt(template);
+  const result = await queryLLM(systemPrompt, userPrompt);
+  return persistBuiltWorld(result);
+}
+
+export async function archiveWorldToTemplate() {
+  const snapshot = await loadActiveWorldSnapshot();
+  if (!snapshot?.world) return null;
+
+  const storyType = snapshot.state?.genre || "sanderson_fantasy";
+  const systemPrompt = buildArchiveSystemPrompt(storyType);
+  const userPrompt = buildArchiveUserPrompt(snapshot);
+  const result = await queryLLM(systemPrompt, userPrompt);
+
+  return archiveCurrentWorld({
+    world: result.world_lore || snapshot.world,
+    canon: result.canon || "",
+    characters: Array.isArray(result.characters) ? result.characters : snapshot.characters,
+    metadata: {
+      name: result.name || "Unnamed World",
+      genre: storyType,
+      sourceStoryType: storyType,
+      summary: result.summary || "",
+    },
+  });
 }

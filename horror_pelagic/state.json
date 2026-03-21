@@ -1,0 +1,28 @@
+{
+  "day": 1,
+  "time_of_day": "late afternoon",
+  "location": "Briar Sound, Maine",
+  "sub_location": "Upstairs Apartment, Maisie's Diner",
+  "health": "good",
+  "inventory": [
+    "worn leather jacket",
+    "cell phone (no signal)",
+    "wallet with out-of-state ID",
+    "car keys (car won't start)",
+    "reporter's notebook",
+    "ballpoint pen"
+  ],
+  "gold": 47,
+  "active_quest": "The Woman From the Rocks",
+  "quest_log": [
+    "Maisie Duggan asked you to check on the woman she's sheltering upstairs. She washed ashore three days ago on the Sounding Rocks, and she's been drawing strange shapes on every surface she can reach.",
+    "The Woman from the Rocks warned that Pelagic Properties is not building a hotel — they are building a key. She named a Harrow as the architect. She described a family compact with something beneath the bay, and said the construction is intended to complete a geometry four generations in the making.",
+    "She called the Harrow great-grandson 'the last mouth' of his bloodline and implied he knows exactly what he is doing."
+  ],
+  "reputation": {
+    "townsfolk": "stranger",
+    "harrow_family": "unnoticed",
+    "old_guard": "unknown"
+  },
+  "genre": "cosmic_horror"
+}

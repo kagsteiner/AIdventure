@@ -9,8 +9,11 @@
 import fs from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const GAME_DIR = path.resolve("game");
+const WORLDS_DIR = path.resolve("worlds");
+const WORLD_INDEX_PATH = path.join(WORLDS_DIR, "index.json");
 
 const PATHS = {
   world: path.join(GAME_DIR, "world.md"),
@@ -25,10 +28,69 @@ const PATHS = {
   ttsCacheDir: path.join(GAME_DIR, "tts_cache"),
 };
 
-async function ensureGameDir() {
-  if (!existsSync(GAME_DIR)) {
-    await fs.mkdir(GAME_DIR, { recursive: true });
+const WORLD_TEMPLATE_FILES = {
+  metadata: "metadata.json",
+  world: "world.md",
+  characters: "characters.json",
+  canon: "canon.md",
+};
+
+async function ensureDir(dirPath) {
+  if (!existsSync(dirPath)) {
+    await fs.mkdir(dirPath, { recursive: true });
   }
+}
+
+async function ensureGameDir() {
+  await ensureDir(GAME_DIR);
+}
+
+async function ensureWorldsDir() {
+  await ensureDir(WORLDS_DIR);
+}
+
+async function readJSON(filePath, fallback = null) {
+  if (!existsSync(filePath)) return fallback;
+  const raw = await fs.readFile(filePath, "utf-8");
+  return JSON.parse(raw);
+}
+
+async function writeJSON(filePath, value) {
+  await fs.writeFile(filePath, JSON.stringify(value, null, 2), "utf-8");
+}
+
+function buildWorldTemplateDir(id) {
+  return path.join(WORLDS_DIR, id);
+}
+
+function slugifyWorldName(name = "") {
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "world";
+}
+
+function hashContent(value) {
+  return crypto.createHash("sha1").update(String(value)).digest("hex");
+}
+
+function normalizeCharacterList(characters) {
+  return Array.isArray(characters) ? characters : [];
+}
+
+function buildTemplateSummary(templatePack) {
+  return {
+    id: templatePack.metadata.id,
+    name: templatePack.metadata.name,
+    genre: templatePack.metadata.genre,
+    createdAt: templatePack.metadata.createdAt,
+    lastPlayedAt: templatePack.metadata.lastPlayedAt,
+    sourceStoryType: templatePack.metadata.sourceStoryType,
+    summary: templatePack.metadata.summary || "",
+    sourceHash: templatePack.metadata.sourceHash,
+  };
 }
 
 // --- World ---
@@ -67,6 +129,11 @@ export async function loadState() {
   if (!existsSync(PATHS.state)) return null;
   const raw = await fs.readFile(PATHS.state, "utf-8");
   return JSON.parse(raw);
+}
+
+export async function loadStory() {
+  if (!existsSync(PATHS.story)) return "";
+  return fs.readFile(PATHS.story, "utf-8");
 }
 
 /**
@@ -147,6 +214,143 @@ export async function clearPendingTurn() {
   } catch {}
 }
 
+// --- World library ---
+
+export async function loadWorldLibraryIndex() {
+  await ensureWorldsDir();
+  const index = await readJSON(WORLD_INDEX_PATH, []);
+  return Array.isArray(index) ? index : [];
+}
+
+export async function listWorldTemplates() {
+  const index = await loadWorldLibraryIndex();
+  return [...index].sort((a, b) => {
+    const left = Date.parse(b.lastPlayedAt || b.createdAt || 0);
+    const right = Date.parse(a.lastPlayedAt || a.createdAt || 0);
+    return left - right;
+  });
+}
+
+export async function loadWorldTemplate(id) {
+  const dirPath = buildWorldTemplateDir(id);
+  if (!existsSync(dirPath)) return null;
+
+  const metadata = await readJSON(path.join(dirPath, WORLD_TEMPLATE_FILES.metadata), null);
+  if (!metadata) return null;
+
+  return {
+    metadata,
+    world: existsSync(path.join(dirPath, WORLD_TEMPLATE_FILES.world))
+      ? await fs.readFile(path.join(dirPath, WORLD_TEMPLATE_FILES.world), "utf-8")
+      : "",
+    canon: existsSync(path.join(dirPath, WORLD_TEMPLATE_FILES.canon))
+      ? await fs.readFile(path.join(dirPath, WORLD_TEMPLATE_FILES.canon), "utf-8")
+      : "",
+    characters: await readJSON(path.join(dirPath, WORLD_TEMPLATE_FILES.characters), []),
+  };
+}
+
+export async function loadActiveWorldSnapshot() {
+  const [world, characters, state, story] = await Promise.all([
+    loadWorld(),
+    loadCharacters(),
+    loadState(),
+    loadStory(),
+  ]);
+
+  if (!world && !story && !characters && !state) return null;
+
+  return {
+    world: world || "",
+    characters: normalizeCharacterList(characters),
+    state: state || null,
+    story: story || "",
+  };
+}
+
+export function computeWorldSourceHash(snapshot) {
+  return hashContent(JSON.stringify({
+    world: snapshot?.world || "",
+    story: snapshot?.story || "",
+    genre: snapshot?.state?.genre || "",
+    characters: normalizeCharacterList(snapshot?.characters),
+  }));
+}
+
+export async function saveWorldTemplate(templatePack) {
+  await ensureWorldsDir();
+
+  const metadata = { ...templatePack.metadata };
+  const id = metadata.id;
+  const dirPath = buildWorldTemplateDir(id);
+  await ensureDir(dirPath);
+
+  await Promise.all([
+    writeJSON(path.join(dirPath, WORLD_TEMPLATE_FILES.metadata), metadata),
+    fs.writeFile(path.join(dirPath, WORLD_TEMPLATE_FILES.world), templatePack.world || "", "utf-8"),
+    writeJSON(
+      path.join(dirPath, WORLD_TEMPLATE_FILES.characters),
+      normalizeCharacterList(templatePack.characters),
+    ),
+    fs.writeFile(path.join(dirPath, WORLD_TEMPLATE_FILES.canon), templatePack.canon || "", "utf-8"),
+  ]);
+
+  const index = await loadWorldLibraryIndex();
+  const summary = buildTemplateSummary({ ...templatePack, metadata });
+  const nextIndex = index.filter((item) => item.id !== id);
+  nextIndex.push(summary);
+  await writeJSON(WORLD_INDEX_PATH, nextIndex);
+
+  return {
+    metadata,
+    world: templatePack.world || "",
+    canon: templatePack.canon || "",
+    characters: normalizeCharacterList(templatePack.characters),
+  };
+}
+
+export async function archiveCurrentWorld(templatePack) {
+  const snapshot = await loadActiveWorldSnapshot();
+  const sourceHash = templatePack.metadata?.sourceHash || computeWorldSourceHash(snapshot);
+  const index = await loadWorldLibraryIndex();
+  const existing = index.find((item) => item.sourceHash === sourceHash);
+  const now = new Date().toISOString();
+
+  if (existing) {
+    const existingTemplate = await loadWorldTemplate(existing.id);
+    if (!existingTemplate) return null;
+
+    const metadata = {
+      ...existingTemplate.metadata,
+      lastPlayedAt: now,
+    };
+    return saveWorldTemplate({
+      ...existingTemplate,
+      metadata,
+    });
+  }
+
+  const createdAt = templatePack.metadata?.createdAt || now;
+  const worldName = templatePack.metadata?.name || snapshot?.state?.location || "Unnamed World";
+  const id = templatePack.metadata?.id || `${slugifyWorldName(worldName)}-${sourceHash.slice(0, 8)}`;
+
+  return saveWorldTemplate({
+    world: templatePack.world || "",
+    canon: templatePack.canon || "",
+    characters: normalizeCharacterList(templatePack.characters),
+    metadata: {
+      id,
+      name: worldName,
+      genre: templatePack.metadata?.genre || snapshot?.state?.genre || "sanderson_fantasy",
+      createdAt,
+      lastPlayedAt: templatePack.metadata?.lastPlayedAt || now,
+      sourceStoryType: templatePack.metadata?.sourceStoryType || snapshot?.state?.genre || "sanderson_fantasy",
+      summary: templatePack.metadata?.summary || "",
+      sourceHash,
+    },
+  });
+}
+
 // --- Helpers ---
 
 export function worldExists() {
@@ -159,8 +363,10 @@ export function worldExists() {
  */
 export async function clearGameState() {
   for (const filePath of Object.values(PATHS)) {
-    try { await fs.unlink(filePath); } catch {}
+    try {
+      await fs.rm(filePath, { recursive: true, force: true });
+    } catch {}
   }
 }
 
-export { PATHS };
+export { PATHS, WORLDS_DIR, WORLD_INDEX_PATH };

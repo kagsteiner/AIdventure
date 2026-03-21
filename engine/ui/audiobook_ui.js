@@ -138,6 +138,19 @@ function langToISO(lang) {
   return LANG_ISO[lang.toLowerCase()] || null;
 }
 
+const NUMBER_WORDS = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
 function buildTtsStyle() {
   const base =
     process.env.TTS_STYLE ||
@@ -389,38 +402,15 @@ export class AudiobookUI {
   }
 
   async selectStoryType(menu) {
-    console.log("\n  Select your adventure type:\n");
-    menu.forEach((item) => {
-      console.log(`    ${item.number}. ${item.name}`);
-      console.log(`       ${item.description}\n`);
-    });
+    return this._selectMenu("Select your adventure type:", "Choose your adventure type.", menu);
+  }
 
-    const menuText = menu
-      .map((item) => `Option ${item.number}: ${item.name}. ${item.description}.`)
-      .join(" ");
-    await this.speak(`Choose your adventure type. ${menuText}`);
+  async selectStartMode(menu) {
+    return this._selectMenu("How would you like to begin?", "How would you like to begin?", menu);
+  }
 
-    while (true) {
-      const input = await this.listen();
-      if (!input || !input.trim()) continue;
-
-      const clean = input.trim().toLowerCase().replace(/[.!?,]/g, "");
-
-      const num = parseInt(clean, 10);
-      if (num >= 1 && num <= menu.length) return menu[num - 1].key;
-
-      const numberWords = { one: 1, two: 2, three: 3, four: 4 };
-      for (const [word, n] of Object.entries(numberWords)) {
-        if (clean.includes(word) && n <= menu.length) return menu[n - 1].key;
-      }
-
-      for (const item of menu) {
-        const keywords = item.name.toLowerCase().split(/[\s-]+/);
-        if (keywords.some((kw) => kw.length > 3 && clean.includes(kw))) return item.key;
-      }
-
-      await this.speak("I didn't catch your choice. Please say a number, like one, two, three, or four.");
-    }
+  async selectWorldTemplate(menu) {
+    return this._selectMenu("Choose a known world:", "Choose a known world.", menu);
   }
 
   async showMessage(text) {
@@ -504,5 +494,51 @@ export class AudiobookUI {
     try {
       fs.rmSync(this.tmpDir, { recursive: true, force: true });
     } catch {}
+  }
+
+  async _selectMenu(title, spokenLead, menu) {
+    console.log(`\n  ${title}\n`);
+    menu.forEach((item) => {
+      console.log(`    ${item.number}. ${item.name}`);
+      if (item.description) {
+        console.log(`       ${item.description}\n`);
+      } else {
+        console.log();
+      }
+    });
+
+    const menuText = menu
+      .map((item) => `Option ${item.number}: ${item.name}.${item.description ? ` ${item.description}.` : ""}`)
+      .join(" ");
+    await this.speak(`${spokenLead} ${menuText}`);
+
+    while (true) {
+      const input = await this.listen();
+      const choice = this._resolveMenuChoice(input, menu);
+      if (choice) return choice;
+      await this.speak("I didn't catch your choice. Please say a number or the option name.");
+    }
+  }
+
+  _resolveMenuChoice(input, menu) {
+    if (!input || !input.trim()) return null;
+    const clean = input.trim().toLowerCase().replace(/[.!?,]/g, "");
+
+    const num = parseInt(clean, 10);
+    if (num >= 1 && num <= menu.length) return menu[num - 1].key;
+
+    for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+      if (clean.includes(word) && n <= menu.length) return menu[n - 1].key;
+    }
+
+    for (const item of menu) {
+      const haystacks = [item.name, item.description || ""]
+        .join(" ")
+        .toLowerCase()
+        .split(/[\s-]+/);
+      if (haystacks.some((kw) => kw.length > 3 && clean.includes(kw))) return item.key;
+    }
+
+    return null;
   }
 }

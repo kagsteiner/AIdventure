@@ -55,6 +55,19 @@ const OPENAI_TTS_VOICES = new Set([
   "verse",
 ]);
 
+const NUMBER_WORDS = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
 export class WebUI {
   constructor(ws) {
     this.ws = ws;
@@ -309,43 +322,15 @@ export class WebUI {
   }
 
   async selectStoryType(menu) {
-    const items = menu.map((m) => ({ key: m.key, number: m.number, name: m.name, description: m.description }));
-    const menuText = menu.map((m) => `Option ${m.number}: ${m.name}. ${m.description}.`).join(" ");
-    const audio = await this._generateTTS(`Choose your adventure type. ${menuText}`);
-    this._send({ type: "menu", items, audio });
+    return this._selectMenu("Choose Your Adventure", "Choose your adventure type.", menu);
+  }
 
-    while (true) {
-      const msg = await this._waitForMessage();
-      if (!msg || this._closed) throw new Error("Client disconnected");
+  async selectStartMode(menu) {
+    return this._selectMenu("Choose How To Begin", "How would you like to begin?", menu);
+  }
 
-      if (msg.type === "menuChoice") {
-        const idx = parseInt(msg.index, 10);
-        if (idx >= 0 && idx < menu.length) return menu[idx].key;
-      }
-
-      if (msg.type === "audio" && msg.data) {
-        try {
-          const text = await this._transcribe(msg.data);
-          if (text) {
-            const clean = text.toLowerCase().replace(/[.!?,]/g, "");
-            const num = parseInt(clean, 10);
-            if (num >= 1 && num <= menu.length) return menu[num - 1].key;
-
-            const numberWords = { one: 1, two: 2, three: 3, four: 4 };
-            for (const [word, n] of Object.entries(numberWords)) {
-              if (clean.includes(word) && n <= menu.length) return menu[n - 1].key;
-            }
-            for (const item of menu) {
-              const keywords = item.name.toLowerCase().split(/[\s-]+/);
-              if (keywords.some((kw) => kw.length > 3 && clean.includes(kw))) return item.key;
-            }
-          }
-        } catch {}
-      }
-
-      const retryAudio = await this._generateTTS("I didn't catch your choice. Please say a number or tap an option.");
-      this._send({ type: "message", text: "Please select an adventure type.", audio: retryAudio });
-    }
+  async selectWorldTemplate(menu) {
+    return this._selectMenu("Choose A Known World", "Choose a known world.", menu);
   }
 
   async showMessage(text) {
@@ -437,5 +422,59 @@ export class WebUI {
   cleanup() {
     this._closed = true;
     try { fs.rmSync(this.tmpDir, { recursive: true, force: true }); } catch {}
+  }
+
+  async _selectMenu(heading, spokenLead, menu) {
+    const items = menu.map((m) => ({
+      key: m.key,
+      number: m.number,
+      name: m.name,
+      description: m.description,
+    }));
+    const menuText = menu.map((m) => `Option ${m.number}: ${m.name}.${m.description ? ` ${m.description}.` : ""}`).join(" ");
+    const audio = await this._generateTTS(`${spokenLead} ${menuText}`);
+    this._send({ type: "menu", heading, items, audio });
+
+    while (true) {
+      const msg = await this._waitForMessage();
+      if (!msg || this._closed) throw new Error("Client disconnected");
+
+      if (msg.type === "menuChoice") {
+        const idx = parseInt(msg.index, 10);
+        if (idx >= 0 && idx < menu.length) return menu[idx].key;
+      }
+
+      if (msg.type === "audio" && msg.data) {
+        try {
+          const text = await this._transcribe(msg.data);
+          const choice = this._resolveMenuChoice(text, menu);
+          if (choice) return choice;
+        } catch {}
+      }
+
+      const retryAudio = await this._generateTTS("I didn't catch your choice. Please say a number or tap an option.");
+      this._send({ type: "message", text: "Please choose one of the available options.", audio: retryAudio });
+    }
+  }
+
+  _resolveMenuChoice(text, menu) {
+    if (!text) return null;
+    const clean = text.toLowerCase().replace(/[.!?,]/g, "");
+    const num = parseInt(clean, 10);
+    if (num >= 1 && num <= menu.length) return menu[num - 1].key;
+
+    for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+      if (clean.includes(word) && n <= menu.length) return menu[n - 1].key;
+    }
+
+    for (const item of menu) {
+      const haystacks = [item.name, item.description || ""]
+        .join(" ")
+        .toLowerCase()
+        .split(/[\s-]+/);
+      if (haystacks.some((kw) => kw.length > 3 && clean.includes(kw))) return item.key;
+    }
+
+    return null;
   }
 }

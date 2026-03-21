@@ -88,6 +88,18 @@ function wordWrap(text) {
     .join("\n");
 }
 
+function printMenu(title, menu) {
+  console.log(`\n  ${title}\n`);
+  menu.forEach((item) => {
+    console.log(`    ${item.number}. ${item.name}`);
+    if (item.description) {
+      console.log(`       ${item.description}\n`);
+    } else {
+      console.log();
+    }
+  });
+}
+
 export class TerminalUI {
   constructor() {
     this.rl = readline.createInterface({
@@ -152,22 +164,15 @@ export class TerminalUI {
   }
 
   async selectStoryType(menu) {
-    console.log("\n  Select your adventure type:\n");
-    menu.forEach((item) => {
-      console.log(`    ${item.number}. ${item.name}`);
-      console.log(`       ${item.description}\n`);
-    });
+    return this._selectMenu("Select your adventure type:", menu);
+  }
 
-    while (true) {
-      const input = await new Promise((resolve) =>
-        this.rl.question("  Choose (1-" + menu.length + "): ", resolve),
-      );
-      const choice = parseInt(input.trim(), 10);
-      if (choice >= 1 && choice <= menu.length) {
-        return menu[choice - 1].key;
-      }
-      console.log("  Invalid choice. Please try again.\n");
-    }
+  async selectStartMode(menu) {
+    return this._selectMenu("How would you like to begin?", menu);
+  }
+
+  async selectWorldTemplate(menu) {
+    return this._selectMenu("Choose a known world:", menu);
   }
 
   showMessage(text) {
@@ -237,5 +242,20 @@ export class TerminalUI {
 
   cleanup() {
     this.rl.close();
+  }
+
+  async _selectMenu(title, menu) {
+    printMenu(title, menu);
+
+    while (true) {
+      const input = await new Promise((resolve) =>
+        this.rl.question("  Choose (1-" + menu.length + "): ", resolve),
+      );
+      const choice = parseInt(input.trim(), 10);
+      if (choice >= 1 && choice <= menu.length) {
+        return menu[choice - 1].key;
+      }
+      console.log("  Invalid choice. Please try again.\n");
+    }
   }
 }

@@ -16,8 +16,10 @@ import {
   savePendingTurn,
   clearPendingTurn,
   clearGameState,
+  listWorldTemplates,
+  loadWorldTemplate,
 } from "./state_manager.js";
-import { buildWorld } from "./world_builder.js";
+import { buildWorld, buildWorldFromTemplate, archiveWorldToTemplate } from "./world_builder.js";
 import { processTurn } from "./game_master.js";
 import { getStoryTypeMenu } from "./story_types.js";
 
@@ -62,6 +64,65 @@ async function waitForPendingTurn(ui) {
   }
 }
 
+function buildStartModeMenu({ hasActiveWorld, worldTemplates }) {
+  const items = [];
+  if (hasActiveWorld) {
+    items.push({
+      key: "continue",
+      number: items.length + 1,
+      name: "Continue current adventure",
+      description: "Resume the active game already stored in game/",
+    });
+  }
+  items.push({
+    key: "new_world",
+    number: items.length + 1,
+    name: "Start a new world",
+    description: "Generate a completely new universe from one of the default story types",
+  });
+  if (worldTemplates.length > 0) {
+    items.push({
+      key: "known_world",
+      number: items.length + 1,
+      name: "Start in a known world",
+      description: "Begin a fresh adventure in a world from your library",
+    });
+  }
+  return items;
+}
+
+function buildWorldTemplateMenu(worldTemplates) {
+  return worldTemplates.map((template, index) => ({
+    key: template.id,
+    number: index + 1,
+    name: template.name,
+    description: template.summary || `A reusable ${template.genre} world`,
+  }));
+}
+
+async function archiveActiveWorld(ui) {
+  if (!worldExists()) return;
+  if (ui.showMessage) await ui.showMessage("Saving this world to your library...");
+  const template = await archiveWorldToTemplate();
+  if (template?.metadata?.name && ui.showMessage) {
+    await ui.showMessage(`Saved world template: ${template.metadata.name}`);
+  }
+}
+
+async function startFreshAdventure(ui, startMode, worldTemplates) {
+  if (startMode === "known_world") {
+    const worldChoice = await ui.selectWorldTemplate(buildWorldTemplateMenu(worldTemplates));
+    const template = await loadWorldTemplate(worldChoice);
+    if (!template) {
+      throw new Error("Selected world template could not be loaded.");
+    }
+    return buildWorldFromTemplate(template);
+  }
+
+  const storyType = await ui.selectStoryType(getStoryTypeMenu());
+  return buildWorld(storyType);
+}
+
 /**
  * Run the main game loop.
  * @param {object} ui - A UI adapter instance (TerminalUI, AudiobookUI, etc.)
@@ -73,13 +134,17 @@ export async function runGame(ui) {
   while (true) {
     let currentChoices = [];
     let restart = false;
+    const hasActiveWorld = worldExists();
+    const worldTemplates = await listWorldTemplates();
 
-    if (!worldExists()) {
+    if (hasActiveWorld) {
+      await waitForPendingTurn(ui);
+    }
+
+    if (!hasActiveWorld && worldTemplates.length === 0) {
       await ui.showNoWorld();
-      const menu = getStoryTypeMenu();
-      const storyType = await ui.selectStoryType(menu);
       try {
-        const opening = await buildWorld(storyType);
+        const opening = await buildWorld(await ui.selectStoryType(getStoryTypeMenu()));
         await ui.showScene(opening.narrative, opening.ascii_art, opening.choices);
         currentChoices = opening.choices;
       } catch (err) {
@@ -88,12 +153,35 @@ export async function runGame(ui) {
         return;
       }
     } else {
-      await waitForPendingTurn(ui);
-      await ui.showResuming();
-      await ui.showStatus();
-      const lastTurn = await loadLastTurn();
-      currentChoices = Array.isArray(lastTurn?.choices) ? lastTurn.choices : [];
-      await ui.showResumeHint();
+      if (!hasActiveWorld) {
+        await ui.showNoWorld();
+      }
+
+      const startMode = await ui.selectStartMode(
+        buildStartModeMenu({ hasActiveWorld, worldTemplates }),
+      );
+
+      if (startMode === "continue") {
+        await ui.showResuming();
+        await ui.showStatus();
+        const lastTurn = await loadLastTurn();
+        currentChoices = Array.isArray(lastTurn?.choices) ? lastTurn.choices : [];
+        await ui.showResumeHint();
+      } else {
+        try {
+          if (hasActiveWorld) {
+            await archiveActiveWorld(ui);
+            await clearGameState();
+          }
+          const opening = await startFreshAdventure(ui, startMode, worldTemplates);
+          await ui.showScene(opening.narrative, opening.ascii_art, opening.choices);
+          currentChoices = opening.choices;
+        } catch (err) {
+          await ui.showWorldError(err.message);
+          ui.cleanup();
+          return;
+        }
+      }
     }
 
     while (true) {
@@ -112,6 +200,13 @@ export async function runGame(ui) {
       // New story — wipe save data and restart from genre selection.
       if (rawInput.trim() === NEW_STORY_CMD || NEW_STORY_PHRASES.has(command)) {
         if (ui.showNewStory) await ui.showNewStory();
+        if (worldExists()) {
+          try {
+            await archiveActiveWorld(ui);
+          } catch (err) {
+            await ui.showTurnError(`Could not save current world: ${err.message}`);
+          }
+        }
         await clearGameState();
         restart = true;
         break;
