@@ -34,15 +34,32 @@ npm start
 
 ## How It Works
 
-On first launch, you select your preferred story type (fantasy, sci-fi, or horror). Then the engine asks the LLM to create an entire world — lore, geography, factions, NPCs, and a starting quest, all tailored to your chosen genre and writing style. Everything is persisted to plain files in `game/`:
+### Starting and continuing
+
+- **No save yet, empty world library:** You pick a story type (fantasy, sci-fi, or horror). The LLM creates a full world — lore, geography, factions, NPCs, and a starting quest — in that style.
+- **No save but you already have worlds in the library:** You see **How would you like to begin?** — either generate a **completely new universe** (same as above) or **Start in a known world**: the LLM opens a *new* adventure in an existing setting (fresh hook and quest, same canon), using a stored template under `worlds/`.
+- **Save present:** You can **Continue** the game in `game/`, or start fresh; starting fresh **archives** the current run into the library (see below) before the new world is built.
+
+Voice and web UIs follow the same flow.
+
+### World library (reusing a setting)
+
+When you start a new story (typed/spoken **new story**, or choosing a fresh start from the menu), the engine asks the LLM to distill the adventure you are leaving into a **reusable world template**: stable lore, character roster, and a canon summary of what happened. That template is saved under `worlds/` (each world has its own folder plus a shared `index.json` for the menu). The next time you pick **Start in a known world**, the LLM uses that template as source of truth and generates a new opening — like a new book in the same universe, without assuming the player saw the earlier run.
+
+### Game files
+
+Everything for the **active** session lives in plain files under `game/`:
 
 | File | Purpose |
 |---|---|
 | `world.md` | World lore, geography, history |
 | `characters.json` | NPCs with goals and dispositions |
 | `state.json` | Current game state (location, inventory, quest, etc.) |
-| `log.md` | Narrative history |
+| `log.md` | Narrative history (for the model context) |
 | `summary.md` | Compressed summary of older events |
+| `story.md` | Full transcript of the playthrough (markdown, including your actions) |
+
+There are also small JSON sidecars for the last scene/turn and optional TTS cache under `game/`; you normally do not edit these by hand.
 
 Each turn, the engine assembles context from these files, sends it to the LLM along with the player's action, and receives a structured JSON response containing narrative text, state changes, optional ASCII art, and suggested choices.
 
@@ -69,11 +86,12 @@ Play the game as an **interactive audiobook** — the story is narrated aloud, a
 - When prompted, **press Enter** to start speaking, then **Enter** again when done
 - Your speech is transcribed using OpenAI STT (`gpt-4o-mini-transcribe`)
 - Suggested actions are narrated but you can say anything — speak freely!
+- There is **no always-listening hands-free mode**; each utterance is an explicit record-then-send step (same idea as push-to-talk).
 - If recording fails, you can type your action as a fallback
 
 ### Voice Commands
 
-Say these words to use game commands: `quit`, `inventory`, `status`, `help`.
+Say these words to use game commands: `quit`, `inventory`, `status`, `help`, or **`new story`** (archives the current world and returns to the start menu).
 
 ## Web Mode (Play from Your Phone)
 
@@ -123,7 +141,7 @@ server {
 
 - The game engine runs on the server; the browser is a thin client
 - Story text is displayed on screen; **tap the "Speak" button** on any scene to hear the AI narrator (OpenAI TTS)
-- **Hold the mic button** to speak your action, or type in the text field
+- **Hold the mic button** to speak your action (push-to-talk — not continuous hands-free listening), or type in the text field
 - Your speech is transcribed server-side (OpenAI STT)
 - Tap a suggested action card to choose it directly
 - No ffmpeg needed on your phone — the browser handles audio natively
@@ -138,19 +156,22 @@ web/
   app.js                Client JavaScript (WebSocket, MediaRecorder)
   style.css             Dark-themed responsive styles
 engine/
-  engine.js             Game loop (display → input → LLM → update)
+  engine.js             Game loop (display → input → LLM → update; start menus, new story)
   ui/
     terminal_ui.js      Retro terminal interface (ASCII art + readline)
     audiobook_ui.js     Audiobook interface (TTS narration + voice input)
     web_ui.js           Web interface (WebSocket + server-side TTS/STT)
   llm.js                LLM abstraction layer (OpenAI-compatible)
   story_types.js        Genre configurations and writing style prompts
-  world_builder.js      Initial world generation
+  world_builder.js      World generation from scratch and from library templates; archive to template
   game_master.js        Turn-by-turn narrative and state
-  state_manager.js      File I/O for game state
+  state_manager.js      File I/O for game state and world library (worlds/)
   memory_manager.js     Log trimming and summarization
 game/
-  (generated at runtime)
+  (active save: generated at runtime)
+worlds/
+  index.json            Library index for "Start in a known world" menu entries
+  <id>/                 Per-world template: metadata.json, world.md, characters.json, canon.md
 ```
 
 ## In-Game Commands
@@ -162,6 +183,7 @@ game/
 | `inventory` / `i` | Check your belongings |
 | `status` | View full game state |
 | `help` / `?` | Show commands |
+| `new story` / `start over` / … | Archive current world to `worlds/`, clear `game/`, show start menu again |
 | `quit` | Save and exit |
 
 Your progress is saved automatically. Run `npm start` again to resume.
@@ -185,12 +207,14 @@ Edit `.env` to customize:
 
 ## Reset
 
-To start a fresh world:
+To clear the **active** save in `game/` (without deleting your **world library** in `worlds/`):
 
 ```bash
 npm run reset
 npm start
 ```
+
+The reset script removes the main persistence files (`world.md`, `characters.json`, `state.json`, `log.md`, `summary.md`, `story.md`). If anything odd still resumes, delete the rest of `game/` manually (e.g. `last_*.json`, `pending_turn.json`, `tts_cache/`).
 
 ## Example Gameplay
 
@@ -201,6 +225,8 @@ npm start
   ╚══════════════════════════════════════════╝
 
   No saved world found. Generating a new world...
+  (If you already have templates under worlds/, you will first see how to begin:
+  new universe vs. known world.)
 
   Select your adventure type:
 
