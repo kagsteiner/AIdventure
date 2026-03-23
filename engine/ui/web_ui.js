@@ -360,7 +360,7 @@ export class WebUI {
   }
 
   async showResumeHint() {
-    this._send({ type: "message", text: "Speak or type your action to continue." });
+    this._send({ type: "message", text: "Type your action to continue." });
   }
 
   async showQuit() {
@@ -410,9 +410,9 @@ export class WebUI {
 
   async showHelp() {
     const text =
-      "You can speak or type any action you want. " +
-      "Say 'inventory' to check your belongings, " +
-      "'status' to hear your current state, " +
+      "You can type any action you want. " +
+      "Type 'inventory' to check your belongings, " +
+      "'status' for your current state, " +
       "'new story' to begin a fresh adventure, " +
       "or 'quit' to end the adventure.";
     const audio = await this._generateTTS(text);

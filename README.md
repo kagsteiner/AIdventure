@@ -40,11 +40,11 @@ npm start
 - **No save but you already have worlds in the library:** You see **How would you like to begin?** — either generate a **completely new universe** (same as above) or **Start in a known world**: the LLM opens a *new* adventure in an existing setting (fresh hook and quest, same canon), using a stored template under `worlds/`.
 - **Save present:** You can **Continue** the game in `game/`, or start fresh; starting fresh **archives** the current run into the library (see below) before the new world is built.
 
-Voice and web UIs follow the same flow.
+Audiobook and web UIs follow the same flow.
 
 ### World library (reusing a setting)
 
-When you start a new story (typed/spoken **new story**, or choosing a fresh start from the menu), the engine asks the LLM to distill the adventure you are leaving into a **reusable world template**: stable lore, character roster, and a canon summary of what happened. That template is saved under `worlds/` (each world has its own folder plus a shared `index.json` for the menu). The next time you pick **Start in a known world**, the LLM uses that template as source of truth and generates a new opening — like a new book in the same universe, without assuming the player saw the earlier run.
+When you start a new story (typed **new story**, or choosing a fresh start from the menu), the engine asks the LLM to distill the adventure you are leaving into a **reusable world template**: stable lore, character roster, and a canon summary of what happened. That template is saved under `worlds/` (each world has its own folder plus a shared `index.json` for the menu). The next time you pick **Start in a known world**, the LLM uses that template as source of truth and generates a new opening — like a new book in the same universe, without assuming the player saw the earlier run.
 
 ### Game files
 
@@ -65,11 +65,11 @@ Each turn, the engine assembles context from these files, sends it to the LLM al
 
 ## Audiobook Mode
 
-Play the game as an **interactive audiobook** — the story is narrated aloud, and you speak your actions.
+Play the game as an **interactive audiobook** — the story is narrated aloud, and your actions are captured via microphone and transcribed to text.
 
 ### Setup
 
-1. Ensure you have an `OPENAI_API_KEY` in your `.env` (required for voice, regardless of `LLM_PROVIDER`)
+1. Ensure you have an `OPENAI_API_KEY` in your `.env` (required for audiobook TTS and transcription, regardless of `LLM_PROVIDER`)
 2. Install [ffmpeg](https://ffmpeg.org) for microphone recording:
    - **Windows:** `choco install ffmpeg` or `winget install ffmpeg`
    - **macOS:** `brew install ffmpeg`
@@ -81,21 +81,21 @@ Play the game as an **interactive audiobook** — the story is narrated aloud, a
 
 ### How It Works
 
-- The story is spoken aloud using OpenAI TTS (`gpt-4o-mini-tts`)
+- The story is read aloud using OpenAI TTS (`gpt-4o-mini-tts`)
 - **Press Enter** during narration to skip ahead
-- When prompted, **press Enter** to start speaking, then **Enter** again when done
-- Your speech is transcribed using OpenAI STT (`gpt-4o-mini-transcribe`)
-- Suggested actions are narrated but you can say anything — speak freely!
+- When prompted, **press Enter** to start recording, then **Enter** again when finished
+- Audio from the microphone is transcribed using OpenAI STT (`gpt-4o-mini-transcribe`)
+- Suggested actions are narrated, but you can describe any action — you are not limited to those options
 - There is **no always-listening hands-free mode**; each utterance is an explicit record-then-send step (same idea as push-to-talk).
 - If recording fails, you can type your action as a fallback
 
-### Voice Commands
+### Phrase shortcuts (audiobook)
 
-Say these words to use game commands: `quit`, `inventory`, `status`, `help`, or **`new story`** (archives the current world and returns to the start menu).
+These phrases work as game commands: `quit`, `inventory`, `status`, `help`, or **`new story`** (archives the current world and returns to the start menu).
 
 ## Web Mode (Play from Your Phone)
 
-Run AIdventure as a **web server** and play from your iPhone or any browser — with full voice narration and push-to-talk input.
+Run AIdventure as a **web server** and play from your iPhone or any browser — with optional TTS narration and typed input.
 
 ### Quick Start (Local)
 
@@ -111,7 +111,7 @@ npm start
 ### VPS Deployment
 
 1. Clone the repo on your VPS, run `npm install`, configure `.env` with `UI_MODE=web`
-2. Set up **nginx** as a reverse proxy with **Let's Encrypt** SSL (HTTPS is required for microphone access on iOS):
+2. Set up **nginx** as a reverse proxy with **Let's Encrypt** SSL (use HTTPS when exposing the app publicly):
 
 ```nginx
 server {
@@ -140,11 +140,9 @@ server {
 ### How It Works
 
 - The game engine runs on the server; the browser is a thin client
-- Story text is displayed on screen; **tap the "Speak" button** on any scene to hear the AI narrator (OpenAI TTS)
-- **Hold the mic button** to speak your action (push-to-talk — not continuous hands-free listening), or type in the text field
-- Your speech is transcribed server-side (OpenAI STT)
-- Tap a suggested action card to choose it directly
-- No ffmpeg needed on your phone — the browser handles audio natively
+- Story text is displayed on screen; use **Narrate** (where shown) on any scene to hear the AI narrator (OpenAI TTS)
+- Type your action in the text field and send, or tap a suggested action card to choose it directly
+- No ffmpeg needed on your phone — narration audio is generated on the server
 
 ## Architecture
 
@@ -160,7 +158,7 @@ engine/
   ui/
     terminal_ui.js      Retro terminal interface (ASCII art + readline)
     audiobook_ui.js     Audiobook interface (TTS narration + voice input)
-    web_ui.js           Web interface (WebSocket + server-side TTS/STT)
+    web_ui.js           Web interface (WebSocket + server-side TTS)
   llm.js                LLM abstraction layer (OpenAI-compatible)
   story_types.js        Genre configurations and writing style prompts
   world_builder.js      World generation from scratch and from library templates; archive to template
