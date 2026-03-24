@@ -18,6 +18,7 @@ import {
   archiveCurrentWorld,
 } from "./state_manager.js";
 import { getStoryType } from "./story_types.js";
+import { generateInitialArc } from "./arc_manager.js";
 
 function buildSystemPrompt(storyType) {
   const config = getStoryType(storyType);
@@ -244,9 +245,21 @@ ${clipStoryForArchive(snapshot.story || "")}`;
 async function persistBuiltWorld(result) {
   await saveWorld(result.world_lore);
   await saveCharacters(result.characters);
-  await saveState(result.starting_state);
+  await saveState({ ...result.starting_state, turn: 0 });
   await appendLog(result.opening_narrative);
   await appendStory(`# AIdventure\n\n---\n\n${result.opening_narrative}`);
+
+  try {
+    await generateInitialArc(
+      result.world_lore,
+      result.characters,
+      result.starting_state,
+      result.opening_narrative,
+      result.starting_state?.genre || "sanderson_fantasy",
+    );
+  } catch (err) {
+    console.error("  Warning: Could not generate story arc:", err.message);
+  }
 
   return {
     narrative: result.opening_narrative,

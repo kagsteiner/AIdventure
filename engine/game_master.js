@@ -11,6 +11,7 @@ import { queryLLM } from "./llm.js";
 import { loadWorld, loadCharacters, loadState } from "./state_manager.js";
 import { getFullMemoryContext } from "./memory_manager.js";
 import { getStoryType } from "./story_types.js";
+import { getDirectorNote } from "./arc_manager.js";
 
 function buildSystemPrompt(storyType) {
   const config = getStoryType(storyType);
@@ -91,13 +92,28 @@ You MUST respond with a JSON object containing these exact keys:
   "choices": [
     // 3-4 suggested actions. The player can also type free text.
     // Example: "Examine the strange markings on the wall"
-  ]
+  ],
+
+  "arc_status": {
+    "phase_progress": "on_track",
+    // "on_track" — story progressing naturally within the phase
+    // "ahead" — phase's dramatic beat landing earlier than expected
+    // "behind" — story stalling or circling without dramatic progress
+    // "diverged" — player went in a direction the arc doesn't account for
+    "phase_complete": false,
+    // true only when the current phase's dramatic purpose has been fulfilled
+    "needs_revision": false,
+    // true when the remaining arc needs redesigning due to player choices
+    "revision_reason": ""
+    // Brief explanation if needs_revision is true
+  }
 }
 
 Important:
 - inventory in state_changes should always be the COMPLETE updated list, not a diff.
 - If nothing changed for a field, do NOT include it in state_changes.
-- narrative should NEVER be empty.`;
+- narrative should NEVER be empty.
+- arc_status: If a Story Direction (Director's Note) is provided below, assess how the turn's events relate to the planned arc. If no Director's Note is present, use defaults (on_track, false, false, "").`;
 }
 
 /**
@@ -127,26 +143,31 @@ async function buildCachedSystemBlocks(storyType) {
  * Build the user message containing only dynamic, per-turn content.
  */
 async function buildUserMessage(playerAction) {
-  const [state, memory] = await Promise.all([
+  const [state, memory, directorNote] = await Promise.all([
     loadState(),
     getFullMemoryContext(),
+    getDirectorNote(),
   ]);
 
-  return `## Current State
+  let message = `## Current State
 
 ${JSON.stringify(state, null, 2)}
 
 ## Narrative History
 
-${memory}
+${memory}`;
 
----
+  if (directorNote) {
+    message += `\n\n${directorNote}`;
+  }
 
-## Player Action
+  message += `\n\n---\n\n## Player Action
 
 The player says/does: "${playerAction}"
 
 Respond as the Game Master.`;
+
+  return message;
 }
 
 /**
@@ -170,6 +191,14 @@ export async function processTurn(playerAction) {
   if (!result.state_changes) result.state_changes = {};
   if (!result.events) result.events = [];
   if (!result.choices) result.choices = [];
+  if (!result.arc_status) {
+    result.arc_status = {
+      phase_progress: "on_track",
+      phase_complete: false,
+      needs_revision: false,
+      revision_reason: "",
+    };
+  }
 
   return result;
 }

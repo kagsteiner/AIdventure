@@ -22,6 +22,7 @@ import {
 import { buildWorld, buildWorldFromTemplate, archiveWorldToTemplate } from "./world_builder.js";
 import { processTurn } from "./game_master.js";
 import { getStoryTypeMenu } from "./story_types.js";
+import { updateArcAfterTurn } from "./arc_manager.js";
 
 /**
  * Sentinel returned by UI adapters when the player requests a new story
@@ -240,15 +241,24 @@ export async function runGame(ui) {
       try {
         const result = await processTurn(action);
 
-        if (Object.keys(result.state_changes).length > 0) {
-          await applyStateChanges(result.state_changes);
-        }
+        const currentState = await loadState();
+        const mergedChanges = {
+          ...result.state_changes,
+          turn: (currentState?.turn || 0) + 1,
+        };
+        await applyStateChanges(mergedChanges);
 
         await appendLog(result.narrative);
         await appendStory(`> *${action}*\n\n${result.narrative}`);
         await ui.showScene(result.narrative, result.ascii_art, result.choices);
         await clearPendingTurn();
         currentChoices = result.choices;
+
+        try {
+          await updateArcAfterTurn(result.arc_status);
+        } catch (arcErr) {
+          console.error("[arc] Error updating arc:", arcErr.message);
+        }
       } catch (err) {
         await clearPendingTurn();
         await ui.showTurnError(err.message);

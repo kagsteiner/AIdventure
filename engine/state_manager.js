@@ -22,6 +22,7 @@ const PATHS = {
   log: path.join(GAME_DIR, "log.md"),
   summary: path.join(GAME_DIR, "summary.md"),
   story: path.join(GAME_DIR, "story.md"),
+  storyArc: path.join(GAME_DIR, "story_arc.json"),
   lastScene: path.join(GAME_DIR, "last_scene.json"),
   lastTurn: path.join(GAME_DIR, "last_turn.json"),
   pendingTurn: path.join(GAME_DIR, "pending_turn.json"),
@@ -178,6 +179,17 @@ export async function saveSummary(markdown) {
 export async function loadSummary() {
   if (!existsSync(PATHS.summary)) return "";
   return fs.readFile(PATHS.summary, "utf-8");
+}
+
+// --- Story Arc ---
+
+export async function saveStoryArc(arc) {
+  await ensureGameDir();
+  await writeJSON(PATHS.storyArc, arc);
+}
+
+export async function loadStoryArc() {
+  return readJSON(PATHS.storyArc, null);
 }
 
 // --- Last replayable turn ---
