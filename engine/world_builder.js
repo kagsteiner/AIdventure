@@ -24,10 +24,14 @@ function buildSystemPrompt(storyType) {
 
   const genreInstructions = storyType === 'space_opera'
     ? 'galaxy/universe'
+    : storyType === 'historical_thriller'
+    ? 'historical setting'
     : 'world';
 
   const worldLoreGuidance = storyType === 'space_opera'
     ? "the galaxy/universe: its name, major civilizations/species, key technologies, important worlds and space stations (at least 5 distinct locations), major historical events, and current political tensions."
+    : storyType === 'historical_thriller'
+    ? "the historical setting: the exact time period and year (or narrow range of years), the real-world location, the political situation and key power structures, important real historical figures who are active at this time, at least 5 distinct real locations within the setting (neighborhoods, landmarks, buildings, surrounding towns), the social hierarchy and daily life, and the specific historical tensions or events driving the thriller plot."
     : "the world: its name, creation myth, magic/power system, geography (at least 5 distinct regions), major historical events, and current political tensions.";
 
   const openingChoiceGuidance = storyType === "tolkien_fantasy"
@@ -36,6 +40,12 @@ function buildSystemPrompt(storyType) {
 - Then invite the player to choose who they are from exactly four options.
 - choices MUST contain exactly 4 options, and each option must clearly include both a race and a gender (for example: "Elf woman ranger...", "Dwarf man smith...", etc.).
 - These 4 options are character-identity picks for the player's starting role in this world. It is ABSOLUTELY CRITICAL to remember these throughout the game.`
+    : storyType === "historical_thriller"
+    ? `For opening_narrative and choices:
+- The opening must immediately establish the specific historical time and place so the player feels grounded in that era.
+- Introduce the protagonist's situation and the first hint of the thriller plot.
+- choices should contain 3-4 initial choices that reflect plausible actions for someone in that historical context.
+- All choices must be historically appropriate — no actions or options that would be anachronistic.`
     : "choices should contain 3-4 initial choices for the player.";
 
   return `You are a master world-builder for interactive fiction.
@@ -80,14 +90,23 @@ You MUST respond with a JSON object containing these exact keys:
   "choices": ["string (${storyType === "tolkien_fantasy" ? "exactly 4 Tolkien character-identity options" : "3-4 initial choices for the player"})"]
 }
 
-Generate 6-10 interesting characters across different locations.
-Make the starting quest compelling but not overwhelming.
+${storyType === 'historical_thriller'
+? `Generate 6-10 characters: a mix of real historical figures who were active in this time and place (with accurate titles, roles, and motivations) and fictional characters who fit naturally into the setting. Every name must be culturally and historically appropriate.
+The central plot should be a compelling thriller — conspiracy, murder, espionage, or political intrigue — rooted in the real tensions of the era.`
+: `Generate 6-10 interesting characters across different locations.
+Make the starting quest compelling but not overwhelming.`}
 ${openingChoiceGuidance}
 
 ${config.narrative_style}`;
 }
 
 function buildUserPrompt(storyType) {
+  if (storyType === 'historical_thriller') {
+    return `Generate a complete historical setting for a new thriller adventure game.
+Pick a specific, fascinating moment in real history. Commit to that one time and place.
+Research accuracy matters — get the names, titles, locations, customs, and politics right.
+Create something with intrigue, danger, and the texture of a lived-in historical world.`;
+  }
   const genreType = storyType === 'space_opera' ? 'universe' : 'world';
   return `Generate a complete ${genreType} for a new adventure game.
 Be creative and original. Avoid generic tropes where possible.
@@ -96,9 +115,9 @@ Create something with mystery, danger, and wonder in equal measure.`;
 
 function buildTemplateSystemPrompt(storyType, template) {
   const config = getStoryType(storyType);
-  const genreInstructions = storyType === "space_opera" ? "galaxy/universe" : "world";
+  const genreInstructions = storyType === "space_opera" ? "galaxy/universe" : storyType === "historical_thriller" ? "historical setting" : "world";
 
-  return `You are reviving an established fictional ${genreInstructions} for a new interactive adventure.
+  return `You are reviving an established ${storyType === "historical_thriller" ? "" : "fictional "}${genreInstructions} for a new interactive adventure.
 
 You will be given a reusable world template from a previous adventure. Treat it as canon.
 
@@ -170,7 +189,7 @@ ${JSON.stringify(template.characters || [], null, 2)}`;
 }
 
 function buildArchiveSystemPrompt(storyType) {
-  const genreInstructions = storyType === "space_opera" ? "universe" : "world";
+  const genreInstructions = storyType === "space_opera" ? "universe" : storyType === "historical_thriller" ? "historical setting" : "world";
 
   return `You are a continuity editor creating a reusable canon template from an interactive fiction playthrough.
 

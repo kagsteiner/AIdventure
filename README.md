@@ -15,6 +15,7 @@ Choose from several adventure types:
 - **Tolkien-Style Fantasy** - Classic high fantasy with rich mythology in the tradition of Middle-earth
 - **Space Opera Sci-Fi** - Grand galactic adventures in the style of Hyperion Cantos and John Scalzi
 - **Cosmic Horror** - Creepy, unsettling tales blending H.P. Lovecraft and Stephen King
+- **Historical Thriller** - Gripping thriller set in a real period of history, in the style of Umberto Eco, Ken Follett, and Robert Harris
 
 Each genre comes with carefully crafted prompts that guide the LLM to write in the appropriate style, including the distinctive prose and worldbuilding approaches of these celebrated authors.
 
@@ -240,7 +241,10 @@ The reset script removes the main persistence files (`world.md`, `characters.jso
     4. Cosmic Horror
        Creepy, unsettling tales in the style of Lovecraft and Stephen King
 
-  Choose (1-4): 1
+    5. Historical Thriller
+       Gripping thriller set in a real period of history, with accurate period detail
+
+  Choose (1-5): 1
 
   Weaving the threads of a new world...
 

@@ -111,6 +111,48 @@ export const STORY_TYPES = {
 - Things are worse than they first appear, and worse still when fully revealed
 - Even small victories come at a cost`,
   },
+
+  historical_thriller: {
+    name: "Historical Thriller",
+    description: "Gripping thriller set in a real period of history, with accurate period detail",
+
+    world_tone: `You must pick ONE specific historical period and setting from real human history — for example:
+- Rome during the late Republic or early Empire
+- Viking-age Scandinavia or their settlements abroad
+- A European city during the Black Death
+- Feudal Japan during the Sengoku period
+- Tang Dynasty China
+- Ancient Egypt during a dynastic transition
+- The Byzantine Empire at a moment of crisis
+- Renaissance Florence or Venice
+- The Ottoman Empire at its height
+- Medieval Baghdad during the Abbasid Caliphate
+These are only examples. You may choose ANY real historical period and place, but you MUST commit to exactly one.
+
+Then build a thriller set in that specific time and place with these characteristics:
+- HISTORICAL ACCURACY IS PARAMOUNT: names, titles, social structures, technology, clothing, food, architecture, weapons, religious practices, and daily life must be authentic to the chosen period
+- Use real place names (cities, regions, landmarks) as they were known at the time
+- Character names must be period-appropriate and culturally correct
+- Political intrigue, conspiracy, or a dangerous mystery driving the plot
+- Real historical tensions of the era woven into the story (wars, succession crises, religious conflicts, trade disputes, plagues, revolts)
+- A protagonist caught in events larger than themselves — forced to navigate danger through wits, alliances, and difficult moral choices
+- A ticking clock or escalating threat that creates urgency
+- Betrayal, shifting loyalties, and characters with hidden agendas
+- The setting itself as a character: the sights, sounds, smells, and rhythms of life in that era
+- NO magic, NO supernatural elements — tension comes from human ambition, fear, and cunning`,
+
+    narrative_style: `Write in the style of Umberto Eco, Ken Follett, and Robert Harris:
+- Richly textured prose that immerses the reader in the historical period
+- Precise, evocative detail about the physical world: markets, temples, fortifications, ships, clothing, food
+- Dialogue that feels natural yet period-appropriate — no modern slang, but not stiffly archaic either
+- Characters who think and act within the logic and values of their time, not with modern sensibilities
+- Political maneuvering and social dynamics rendered with intelligence and subtlety
+- Tension built through information asymmetry: the player knows some things, suspects others, and is wrong about more than they realize
+- Pacing that alternates between slow-burn investigation and sudden, violent danger
+- A sense that history is alive — the world continues around the player, events unfold whether or not they act
+- Moral complexity: no purely good or evil characters, only people shaped by their era and circumstances
+- Visceral stakes — injury, imprisonment, execution, exile — grounded in the real consequences of the period`,
+  },
 };
 
 /**
