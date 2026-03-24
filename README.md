@@ -55,7 +55,8 @@ Everything for the **active** session lives in plain files under `game/`:
 |---|---|
 | `world.md` | World lore, geography, history |
 | `characters.json` | NPCs with goals and dispositions |
-| `state.json` | Current game state (location, inventory, quest, etc.) |
+| `state.json` | Current game state (location, inventory, quest, per-turn counter `turn`, etc.) |
+| `story_arc.json` | Planned dramatic arc (phases, seeds); written after new world generation |
 | `log.md` | Narrative history (for the model context) |
 | `summary.md` | Compressed summary of older events |
 | `story.md` | Full transcript of the playthrough (markdown, including your actions) |
@@ -63,6 +64,14 @@ Everything for the **active** session lives in plain files under `game/`:
 There are also small JSON sidecars for the last scene/turn and optional TTS cache under `game/`; you normally do not edit these by hand.
 
 Each turn, the engine assembles context from these files, sends it to the LLM along with the player's action, and receives a structured JSON response containing narrative text, state changes, optional ASCII art, and suggested choices.
+
+### Story arc (narrative structure)
+
+After a **new** world is generated, the engine runs a second LLM pass (same tier as world building — `LLM_MODEL`, not `LLM_GAMELOOP_MODEL`) to design a **story arc**: a dramatic question, five **phases** (hook → rising action → midpoint → escalation → climax), and **planted seeds** with payoff phases. That plan is saved as `game/story_arc.json`.
+
+On each turn, the **game-loop** model receives a short **Director's Note** derived from the current phase: tone, escalation, what to push toward, which seeds to plant or pay off, and what to avoid so later beats still land. The model also returns an **`arc_status`** block (whether the phase is on track, whether the dramatic beat is complete, and whether the remaining arc should be **revised** because the player went somewhere unexpected). The engine advances phases when the beat is marked complete, and occasionally calls the strategic model again to **rewrite only the remaining phases** while keeping finished phases as canon — for example when `needs_revision` is true or a phase runs far past its target length.
+
+**Older saves:** If you **continue** a game that was started before this feature, there is no `story_arc.json`. Play works as before: no Director's Note, no arc updates, and no extra arc-related API calls. After your first turn, `state.json` gains a `turn` counter (used for display and pacing context). To get an arc for an old run you would need a separate “generate arc from here” feature (not implemented yet).
 
 ## Audiobook Mode
 
@@ -163,6 +172,7 @@ engine/
   llm.js                LLM abstraction layer (OpenAI-compatible)
   story_types.js        Genre configurations and writing style prompts
   world_builder.js      World generation from scratch and from library templates; archive to template
+  arc_manager.js        Story arc generation, director's notes, and arc revision (strategic model)
   game_master.js        Turn-by-turn narrative and state
   state_manager.js      File I/O for game state and world library (worlds/)
   memory_manager.js     Log trimming and summarization
@@ -194,8 +204,8 @@ Edit `.env` to customize:
 - `OPENAI_API_KEY` — Your OpenAI API key (required for openai provider and audiobook mode)
 - `ANTHROPIC_API_KEY` — Your Anthropic API key (required for anthropic provider)
 - `LLM_PROVIDER` — `anthropic` (default) or `openai`. Both models must be from the same provider.
-- `LLM_MODEL` — Model for initial story/world building (default: `claude-opus-4-0-20250514` / `gpt-4o`). A thinking-capable model is recommended for this complex initial task.
-- `LLM_GAMELOOP_MODEL` — Model for the game loop and summarization (optional). Falls back to `LLM_MODEL` if not set. Use a cheaper model here to save cost, e.g. `claude-sonnet-4-6`.
+- `LLM_MODEL` — Model for initial story/world building **and** story-arc generation/revision (default: `claude-opus-4-0-20250514` / `gpt-4o`). A thinking-capable model is recommended for this complex initial task.
+- `LLM_GAMELOOP_MODEL` — Model for the game loop and summarization (optional). Falls back to `LLM_MODEL` if not set. Use a cheaper model here to save cost, e.g. `claude-sonnet-4-6`. Arc design and arc **revisions** still use the non–game-loop model (`LLM_MODEL`).
 - `OPENAI_BASE_URL` — Custom API endpoint for local models, Azure, etc. (never tested this)
 - `UI_MODE` — `terminal` (default), `audiobook`, or `web`
 - `WEB_PORT` — Port for web server mode (default: `3006`)
@@ -213,7 +223,7 @@ npm run reset
 npm start
 ```
 
-The reset script removes the main persistence files (`world.md`, `characters.json`, `state.json`, `log.md`, `summary.md`, `story.md`). If anything odd still resumes, delete the rest of `game/` manually (e.g. `last_*.json`, `pending_turn.json`, `tts_cache/`).
+The reset script removes the main persistence files (`world.md`, `characters.json`, `state.json`, `log.md`, `summary.md`, `story.md`). It does **not** remove every file under `game/`; if you need a fully clean folder, delete the rest manually (e.g. `story_arc.json`, `last_*.json`, `pending_turn.json`, `tts_cache/`).
 
 ## Example Gameplay
 
@@ -247,6 +257,8 @@ The reset script removes the main persistence files (`world.md`, `characters.jso
   Choose (1-5): 1
 
   Weaving the threads of a new world...
+
+  Designing the story arc...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
