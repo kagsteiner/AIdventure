@@ -136,7 +136,7 @@ async function openaiText(systemPrompt, userPrompt, model) {
 /**
  * Convert a system prompt (string or array of { text, cache } blocks)
  * into the Anthropic API format. When the system is an array, blocks
- * with `cache: true` get `cache_control: { type: "ephemeral" }`.
+ * with `cache: true` get `cache_control: { type: "ephemeral", ttl: "1h" }`.
  *
  * @param {string|Array<{text: string, cache?: boolean}>} system
  * @param {string} [suffix] - Optional text appended to the last block
