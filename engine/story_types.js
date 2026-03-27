@@ -81,7 +81,24 @@ export const STORY_TYPES = {
 - Mix philosophical questions with action and adventure
 - Multiple perspectives or frame narratives when appropriate
 - Humor that doesn't undercut genuine stakes or emotion
-- A sense of wonder at the vastness and strangeness of space`,
+- A sense of wonder at the vastness and strangeness of space
+
+STYLE DISCIPLINE — these patterns are FORBIDDEN because they are overused and stale:
+
+1. THE NEGATION-REDEFINITION CRUTCH: Never write "not X exactly, but the kind of X that..." or "not the usual X, but something more like..." Do not define a feeling or sensation by first negating a simpler version, then offering a poeticized restatement. Just describe what it IS. Commit to one image and trust it. Bad: "not fear exactly, but the kind of careful stillness that precedes a decision." Better: just describe the stillness, or the decision, or the body language — the reader will infer the emotion.
+
+2. THE VAGUE "QUALITY" GESTURE: Never write that something "has a quality" you can't name/place/describe. Never say a darkness or silence or sound has "something" unnameable about it. If you can't name it, find one concrete sensory detail that makes the reader feel it. Show the strange thing; don't announce that a strange thing exists.
+
+3. FALSE PRECISION: Never use "precisely," "exactly N seconds," "at precisely the right angle," or similar. Humans do not experience time in decimal points. Describe durations through lived experience — the length of a held breath, the time between a lightning flash and its thunder, the pause before someone answers a question they wish you hadn't asked.
+
+4. OVERLONG METAPHORS: Keep metaphors short. One vivid image, then move on. Do not unspool a comparison across an appositive clause, a relative clause, and a participial phrase. "Neural Lace cradles at the nav stations, the kind that slot in behind the ear for long Fold transits" — that trailing explanation kills the image. If a metaphor needs a footnote, pick a better metaphor.
+
+5. THE "LIKE X BUT NOT X" SPIRAL: Do not explain an unfamiliar thing by saying "like X, but not X — more like X if X had been Y." One comparison. Land it. Next sentence.
+
+WHAT TO DO INSTEAD:
+- Prefer one concrete, unexpected detail over three sentences of atmospheric abstraction. A scorch mark on a bulkhead. The taste of recycled air after a hull breach. A nav display stuck showing yesterday's route.
+- Let objects and actions carry the mood. Trust the reader. Understatement lands harder than ornamentation.
+- When reaching for a metaphor, draw from the character's own life and expertise. A pilot compares something to a bad re-entry, not to poetry.`,
   },
 
   cosmic_horror: {
