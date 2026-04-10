@@ -8,6 +8,12 @@
   <meta name="theme-color" content="#0a0a0f">
   <title>AIdventure</title>
   <link rel="stylesheet" href="style.css">
+  <script>
+    // Detect Kindle / Amazon Silk browser early to avoid flash of dark theme
+    if (/Kindle|Silk/i.test(navigator.userAgent)) {
+      document.documentElement.classList.add('kindle');
+    }
+  </script>
 </head>
 <body>
 
