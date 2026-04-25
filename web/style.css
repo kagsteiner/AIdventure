@@ -466,3 +466,49 @@ html, body {
   0%, 80%, 100% { transform: scale(0); }
   40%           { transform: scale(1); }
 }
+
+/* ── Kindle / e-ink theme (black on white) ────────────── */
+
+html.kindle {
+  --bg: #ffffff;
+  --bg-surface: #f0f0f0;
+  --bg-card: #e4e4e4;
+  --text: #1a1a1a;
+  --text-dim: #555555;
+  --accent: #1a1a8c;
+  --accent-glow: rgba(26, 26, 140, 0.12);
+  --danger: #b30000;
+}
+
+/* Hardcoded border colours that don't use variables */
+html.kindle #top-bar { border-bottom-color: #bbbbbb; }
+html.kindle #input-area { border-top-color: #bbbbbb; }
+
+html.kindle .overlay-content input,
+html.kindle #settings-btn,
+html.kindle #new-story-btn,
+html.kindle #tts-voice-select,
+html.kindle #text-input { border-color: #aaaaaa; }
+
+html.kindle .settings-panel,
+html.kindle .choice-card,
+html.kindle .menu-card { border-color: #cccccc; }
+
+html.kindle #settings-modal {
+  background: rgba(240, 240, 240, 0.88);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+html.kindle .settings-panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Keep button text white on the coloured accent buttons */
+html.kindle .overlay-content button,
+html.kindle #send-btn,
+html.kindle .settings-done { color: #ffffff; }
+
+/* Disable glow animations — they render poorly on e-ink */
+html.kindle * { transition: none !important; animation: none !important; }
+html.kindle .narrative-block { animation: none; }
